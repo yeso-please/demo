@@ -96,11 +96,17 @@
             </div>
         </div>
 
-        <!-- Fixed Bottom Action: 이 지역으로 여행가기 → /region -->
-        <div class="absolute bottom-0 left-0 w-full p-4 bg-surface/90 backdrop-blur border-t border-border z-30">
-            <a th:href="@{/region}" class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">explore</span>
-                이 지역으로 여행가기
+        <!-- Fixed Bottom Action: 하루 보내기(주) + 지역 상세(보조) -->
+        <div class="absolute bottom-0 left-0 w-full p-4 bg-surface/90 backdrop-blur border-t border-border z-30 flex flex-col gap-2">
+            <a th:if="${dayPlanAvailable}" th:href="@{/course(sigCd=${sigCd}, auto=true)}"
+               class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
+                이 지역에서 하루 보내기
+            </a>
+            <a th:href="@{/region(sigCd=${sigCd})}"
+               class="w-full h-[44px] bg-surface border border-border hover:border-primary text-text-primary font-body-main rounded flex items-center justify-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">explore</span>
+                지역 자세히 보기
             </a>
         </div>
     </div>

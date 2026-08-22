@@ -1,11 +1,13 @@
 package com.sunz.hidden_travel.controller;
 
 import com.sunz.hidden_travel.controller.dto.CoursePageData;
+import com.sunz.hidden_travel.controller.dto.DayPlan;
 import com.sunz.hidden_travel.controller.dto.Recommendation;
 import com.sunz.hidden_travel.domain.Region;
 import com.sunz.hidden_travel.domain.SavedCourse;
 import com.sunz.hidden_travel.domain.SavedCourseStop;
 import com.sunz.hidden_travel.repository.RegionRepository;
+import com.sunz.hidden_travel.service.DayPlanService;
 import com.sunz.hidden_travel.service.RegionQueryService;
 import com.sunz.hidden_travel.service.SavedCourseService;
 import com.sunz.hidden_travel.user.CurrentUserService;
@@ -31,28 +33,52 @@ public class CourseController {
     @org.springframework.beans.factory.annotation.Value("${kakao.js.key:}")
     private String kakaoJsKey;
 
+    /** 하루 코스 '다른 조합' 회차 상한 — 무한정 올려도 의미가 없다 */
+    private static final int MAX_VARIANT = 99;
+
     private final RegionQueryService regionQueryService;
     private final RegionRepository regionRepository;
     private final SavedCourseService savedCourseService;
     private final CurrentUserService currentUserService;
+    private final DayPlanService dayPlanService;
 
     public CourseController(RegionQueryService regionQueryService,
                             RegionRepository regionRepository,
                             SavedCourseService savedCourseService,
-                            CurrentUserService currentUserService) {
+                            CurrentUserService currentUserService,
+                            DayPlanService dayPlanService) {
         this.regionQueryService = regionQueryService;
         this.regionRepository = regionRepository;
         this.savedCourseService = savedCourseService;
         this.currentUserService = currentUserService;
+        this.dayPlanService = dayPlanService;
     }
 
-    /** 내 코스 만들기 — sigCd 후보 데이터 + (courseId) 초기 코스 */
+    /**
+     * 내 코스 만들기 — sigCd 후보 데이터 + (courseId) 초기 코스.
+     *
+     * @param auto    '이 지역에서 하루 보내기'로 들어온 경우. 오전·점심·오후·저녁을 자동 조립해
+     *                타임라인에 미리 채운다. 사용자는 그 상태에서 바로 고칠 수 있다.
+     * @param variant 같은 지역에서 다른 조합을 보고 싶을 때의 회차
+     */
     @GetMapping("/course")
     public String course(@RequestParam(required = false) String sigCd,
                          @RequestParam(required = false) Long courseId,
+                         @RequestParam(required = false, defaultValue = "false") boolean auto,
+                         @RequestParam(required = false, defaultValue = "0") int variant,
                          Model model) {
         String cd = sigCd != null ? sigCd : DEFAULT_SIG;
         CoursePageData data = regionQueryService.coursePageData(cd, courseId);
+
+        // 추천 코스를 담아온 경우(courseId)에는 그쪽이 우선 — 두 초기 코스가 겹치지 않게 한다
+        if (auto && courseId == null) {
+            DayPlan plan = dayPlanService.plan(cd, Math.clamp(variant, 0, MAX_VARIANT));
+            model.addAttribute("dayPlan", plan);
+            if (plan.available()) {
+                data = data.withInitialCourse(plan.title(), DayPlanService.toInitialItems(plan));
+            }
+        }
+
         model.addAttribute("data", data);
         // 지도에 동선을 그리는 데 필요. 키가 없으면 화면이 안내를 띄운다.
         model.addAttribute("kakaoJsKey", kakaoJsKey);

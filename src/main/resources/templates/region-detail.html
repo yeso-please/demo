@@ -28,7 +28,19 @@
                     길찾기
                 </button>
             </div>
-            <p class="font-body-main text-body-main text-on-surface-variant max-w-2xl" th:text="${heroDesc}">지역 소개</p>
+            <p class="font-body-main text-body-main text-on-surface-variant max-w-2xl mb-6" th:text="${heroDesc}">지역 소개</p>
+
+            <!-- 대표 행동: 발견한 지역을 그 자리에서 하루로 바꾼다.
+                 아래 '추천 코스'는 TourAPI 코스(92%가 경유지 없음)라 이쪽이 실행에 더 가깝다. -->
+            <a th:if="${dayPlanAvailable}" th:href="@{/course(sigCd=${sigCd}, auto=true)}"
+               class="inline-flex items-center gap-2 h-[52px] px-6 bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded transition-all duration-300 hover:-translate-y-0.5">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
+                이 지역에서 하루 보내기
+            </a>
+            <p th:unless="${dayPlanAvailable}" class="font-caption text-caption text-text-muted flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">info</span>
+                이 지역은 아직 자동으로 하루를 짤 데이터가 부족해요. 아래에서 직접 담아 만들어 보세요.
+            </p>
         </div>
         <!-- 지도 썸네일 자리표시자 (id: map-thumb) -->
         <div id="map-thumb" class="w-full md:w-64 h-48 bg-surface-alt border border-border rounded flex items-center justify-center flex-shrink-0">

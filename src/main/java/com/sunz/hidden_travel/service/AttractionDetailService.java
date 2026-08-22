@@ -129,8 +129,9 @@ public class AttractionDetailService {
                 // 한도가 없으면 이번엔 이름·주소·이미지만 돌려주고, 다음 기회에 다시 시도한다
                 log.warn("[AttractionDetail] 호출 한도 부족 — 상세 조회를 건너뜁니다. id={}", attractionId);
                 pending = true;
-            } else {
-                fetchInto(a);
+            } else if (!fetchInto(a)) {
+                // 예산은 있었는데 응답을 못 받았다 → 화면도 "아직 못 받아옴"으로 알린다
+                pending = true;
             }
         }
 
@@ -140,12 +141,21 @@ public class AttractionDetailService {
                 a.getParking(), a.getInfocenter(), a.getTel(), pending);
     }
 
-    /** detailCommon2 + detailIntro2 를 읽어 엔티티에 채운다(최대 2회 호출) */
-    private void fetchInto(Attraction a) {
+    /**
+     * detailCommon2 + detailIntro2 를 읽어 엔티티에 채운다(최대 2회 호출).
+     *
+     * <p><b>응답을 받았을 때만</b> detailFetched 를 찍는다. 호출 자체가 실패한 건
+     * (한도 소진·네트워크 오류) 마킹하면 <b>영영 다시 시도하지 않아 데이터가 비어버린다.</b>
+     * 반대로 응답은 왔는데 내용이 비어 있는 건은 원본에 없는 것이므로 마킹한다 —
+     * 다시 불러도 같은 결과다.
+     */
+    private boolean fetchInto(Attraction a) {
         String cid = a.getSourceContentId();
+        boolean answered = false;
         try {
             JsonNode common = client.detailCommon(cid);
             if (common != null) {
+                answered = true;
                 a.setDescription(clean(text(common, "overview")));
                 a.setHomepage(firstUrl(text(common, "homepage")));
                 if (isBlank(a.getImage())) {
@@ -155,6 +165,7 @@ public class AttractionDetailService {
 
             JsonNode intro = client.detailIntro(cid, CT_ATTRACTION);
             if (intro != null) {
+                answered = true;
                 a.setUsetime(clean(text(intro, "usetime")));
                 a.setRestdate(clean(text(intro, "restdate")));
                 a.setParking(clean(text(intro, "parking")));
@@ -163,8 +174,13 @@ public class AttractionDetailService {
         } catch (Exception e) {
             log.warn("[AttractionDetail] 상세 조회 실패 contentId={}: {}", cid, e.getMessage());
         }
-        // 결과가 비어 있어도 true — 같은 콘텐츠를 반복 호출하지 않는다
-        a.setDetailFetched(true);
+
+        if (answered) {
+            a.setDetailFetched(true);
+        } else {
+            log.warn("[AttractionDetail] 응답을 받지 못해 미완료로 둡니다(다음에 재시도) contentId={}", cid);
+        }
+        return answered;
     }
 
     /* ---------- 유틸 ---------- */

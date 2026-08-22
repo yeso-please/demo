@@ -18,6 +18,7 @@ replay_pid*.log
 # 생성된 HTML 은 커밋하지 않는다(용량이 크고 언제든 재생성 가능).
 # 재생성 스크립트와 README 는 팀 공유를 위해 커밋한다.
 /figma-export/*.html
+/figma-export/_png/
 /figma-export/.copy-progress
 /figma-export/_build/node_modules/
 /figma-export/_build/tw.css

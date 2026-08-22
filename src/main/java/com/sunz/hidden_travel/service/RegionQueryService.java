@@ -52,19 +52,22 @@ public class RegionQueryService {
     private final GoodPriceShopRepository goodPriceShopRepository;
     private final SpecialtyRepository specialtyRepository;
     private final TravelCourseRepository travelCourseRepository;
+    private final DayPlanService dayPlanService;
 
     public RegionQueryService(RegionRepository regionRepository,
                               AttractionRepository attractionRepository,
                               FoodPlaceRepository foodPlaceRepository,
                               GoodPriceShopRepository goodPriceShopRepository,
                               SpecialtyRepository specialtyRepository,
-                              TravelCourseRepository travelCourseRepository) {
+                              TravelCourseRepository travelCourseRepository,
+                              DayPlanService dayPlanService) {
         this.regionRepository = regionRepository;
         this.attractionRepository = attractionRepository;
         this.foodPlaceRepository = foodPlaceRepository;
         this.goodPriceShopRepository = goodPriceShopRepository;
         this.specialtyRepository = specialtyRepository;
         this.travelCourseRepository = travelCourseRepository;
+        this.dayPlanService = dayPlanService;
     }
 
     public RegionBundle bundle(String sigCd) {
@@ -107,7 +110,9 @@ public class RegionQueryService {
                 recommendedCourses(name, courses, attractions, foods),
                 attractionCount, foodCount, shopCount, specialtyCount,
                 region != null ? region.getLat() : null,
-                region != null ? region.getLng() : null);
+                region != null ? region.getLng() : null,
+                // 이미 읽어둔 목록으로 판정한다 — 추가 조회 없음
+                dayPlanService.canBuild(attractions, foods, shops));
     }
 
     /* 패널 "추천 반일 코스": 여행코스 경유지 우선, 없으면 관광지+맛집 간이 조합 */
@@ -172,8 +177,9 @@ public class RegionQueryService {
 
         List<CandidateItem> foods = foodPlaceRepository.findBySigCd(sigCd).stream()
                 .limit(CANDIDATE_LIMIT)
+                // DB 에는 cat3 코드가 그대로 들어 있다 — 라벨로 옮기지 않으면 카드에 "A05020100" 이 뜬다
                 .map(f -> new CandidateItem(String.valueOf(f.getId()), "food", f.getName(),
-                        f.getAddr(), f.getCategory() != null ? f.getCategory() : "먹거리", false, null, null,
+                        f.getAddr(), FoodCategories.label(f.getCategory()), false, null, null,
                         f.getLat(), f.getLng()))
                 .toList();
 
@@ -204,8 +210,10 @@ public class RegionQueryService {
 
                     initial.add(new CourseInitItem(
                             order++,
+                            null,   // 추천 코스 경유지에는 시간대가 없다(하루 코스만 채운다)
                             p.getName(),
                             p.getType() != null ? p.getType() : "코스",
+                            "course",
                             false,
                             matched != null ? matched.getId() : null,
                             p.getContentId(),

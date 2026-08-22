@@ -14,4 +14,14 @@ public record CoursePageData(
         List<CandidateItem> goodShops,
         List<CandidateItem> specialties,
         List<CourseInitItem> initialItems
-) {}
+) {
+
+    /**
+     * 자동 조립한 하루 코스를 초기 타임라인으로 얹은 사본.
+     * 왼쪽 후보 목록은 그대로 두어 사용자가 곧바로 고칠 수 있게 한다
+     * (자동 코스는 출발점이지 결론이 아니다).
+     */
+    public CoursePageData withInitialCourse(String name, List<CourseInitItem> items) {
+        return new CoursePageData(sigCd, regionName, name, attractions, foods, goodShops, specialties, items);
+    }
+}

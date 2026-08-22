@@ -154,12 +154,23 @@
                 </div>
             </div>
 
-            <!-- Bottom action -->
-            <div class="p-4 bg-surface border-t border-border shrink-0">
-                <a id="panel-go" href="#"
+            <!-- Bottom action —
+                 발견에서 끝나지 않게 '하루 보내기'를 주 행동으로 둔다.
+                 지역을 더 훑어보고 싶은 사람을 위해 상세 진입은 보조로 남긴다. -->
+            <div class="p-4 bg-surface border-t border-border shrink-0 flex flex-col gap-2">
+                <a id="panel-day" href="#"
                    class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
-                    <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">explore</span>
-                    이 지역으로 여행가기
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
+                    이 지역에서 하루 보내기
+                </a>
+                <!-- 자동 코스를 만들 데이터가 없는 지역에서는 버튼 대신 사실을 보여준다 -->
+                <p id="panel-day-note" class="hidden font-caption text-caption text-text-muted text-center">
+                    이 지역은 아직 자동으로 하루를 짤 데이터가 부족해요
+                </p>
+                <a id="panel-go" href="#"
+                   class="w-full h-[44px] bg-surface border border-border hover:border-primary text-text-primary font-body-main rounded flex items-center justify-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">explore</span>
+                    지역 자세히 보기
                 </a>
             </div>
         </aside>

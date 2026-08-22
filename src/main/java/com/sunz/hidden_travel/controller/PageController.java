@@ -83,7 +83,10 @@ public class PageController {
     /** 지역 상세 탐색 — 지도 우측 슬라이드 패널(독립 페이지 버전, 실데이터) */
     @GetMapping("/region/panel")
     public String regionPanel(Model model) {
-        model.addAttribute("region", toSummary(regionQueryService.bundle(DEFAULT_SIG)));
+        RegionBundle b = regionQueryService.bundle(DEFAULT_SIG);
+        model.addAttribute("sigCd", DEFAULT_SIG);
+        model.addAttribute("region", toSummary(b));
+        model.addAttribute("dayPlanAvailable", b.dayPlanAvailable());
         return "region-panel";
     }
 
@@ -98,6 +101,8 @@ public class PageController {
         model.addAttribute("destLng", b.lng());
         model.addAttribute("kakaoJsKey", kakaoJsKey);
         model.addAttribute("heroDesc", b.aiSummary());
+        // '이 지역에서 하루 보내기'를 내보낼 수 있는 지역인지
+        model.addAttribute("dayPlanAvailable", b.dayPlanAvailable());
         model.addAttribute("metrics", List.of(
                 new RegionMetric(String.valueOf(b.attractionCount()), "관광 콘텐츠 수"),
                 new RegionMetric(String.valueOf(b.foodCount()), "맛집 수"),

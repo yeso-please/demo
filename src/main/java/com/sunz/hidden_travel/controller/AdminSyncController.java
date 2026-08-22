@@ -1,6 +1,7 @@
 package com.sunz.hidden_travel.controller;
 
 import com.sunz.hidden_travel.goodprice.GoodPriceSyncService;
+import com.sunz.hidden_travel.service.AttractionDetailBackfillService;
 import com.sunz.hidden_travel.tour.TourSyncService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,10 +25,14 @@ public class AdminSyncController {
 
     private final TourSyncService sync;
     private final GoodPriceSyncService goodPriceSync;
+    private final AttractionDetailBackfillService detailBackfill;
 
-    public AdminSyncController(TourSyncService sync, GoodPriceSyncService goodPriceSync) {
+    public AdminSyncController(TourSyncService sync,
+                               GoodPriceSyncService goodPriceSync,
+                               AttractionDetailBackfillService detailBackfill) {
         this.sync = sync;
         this.goodPriceSync = goodPriceSync;
+        this.detailBackfill = detailBackfill;
     }
 
     @PostMapping("/tour")
@@ -66,6 +71,24 @@ public class AdminSyncController {
     @GetMapping("/tour/budget")
     public Map<String, Object> budget() {
         return sync.budget();
+    }
+
+    /**
+     * 관광지 상세 설명 선적재를 <b>지금</b> 실행한다(오늘 예산이 허락하는 만큼).
+     * 평소에는 매일 04:00(KST)에 자동으로 돈다 — 이 엔드포인트는 수동 트리거다.
+     *
+     *  - POST /admin/sync/tour/details            → 오늘 예산만큼
+     *  - POST /admin/sync/tour/details?limit=5    → 5건만 (배포 전 확인용)
+     */
+    @PostMapping("/tour/details")
+    public Map<String, Object> tourDetails(@RequestParam(required = false) Integer limit) {
+        return limit == null ? detailBackfill.run() : detailBackfill.run(limit);
+    }
+
+    /** 선적재 진행률 (API 호출 없음) — GET /admin/sync/tour/details/progress */
+    @GetMapping("/tour/details/progress")
+    public Map<String, Object> tourDetailsProgress() {
+        return detailBackfill.progress();
     }
 
     /**

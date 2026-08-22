@@ -39,6 +39,10 @@
         if (o.lat != null && o.lat !== '') row.setAttribute('data-lat', o.lat);
         if (o.lng != null && o.lng !== '') row.setAttribute('data-lng', o.lng);
 
+        // 직전 장소에서 오는 이동 추정 자리 (updateLegs 가 채운다)
+        // 'hidden' 과 'flex' 를 같이 두면 표시 규칙이 충돌한다 — 여기서는 쓰지 않는다
+        row.appendChild(el('p', 'leg-note hidden font-caption text-caption text-text-muted mb-2'));
+
         const top = el('div', 'flex items-center gap-3');
 
         const handle = el('span', 'material-symbols-outlined text-text-muted cursor-grab drag-handle text-[20px]', 'drag_indicator');
@@ -115,11 +119,75 @@
     function refresh() {
         renumber();
         updateSummary();
+        updateLegs();
         syncAdded();
         toggleEmpty();
         saveDraft();
         // 지도(course-map.js)가 동선을 다시 그리도록 알린다
         document.dispatchEvent(new CustomEvent('course:changed'));
+    }
+
+    /* ---------- 구간 이동 추정 ----------
+       길찾기 API 는 한도가 있어(300회/일) 편집 중에는 부를 수 없다.
+       담긴 좌표로 직선거리를 재고 도로 계수를 곱해 어림한 값을 보여준다.
+       실제 도로 경로는 저장 시점에 서버가 1회 계산한다(CourseRouteService).
+       ※ 서버의 DayPlanService 와 같은 식·같은 상수를 쓴다. 한쪽만 바꾸면 값이 어긋난다. */
+    const ROAD_FACTOR = 1.3;
+    const AVG_SPEED_KMH = 40;
+
+    function coordOf(item) {
+        const lat = parseFloat(item.getAttribute('data-lat'));
+        const lng = parseFloat(item.getAttribute('data-lng'));
+        return isNaN(lat) || isNaN(lng) ? null : { lat: lat, lng: lng };
+    }
+
+    function roadKm(a, b) {
+        const R = 6371;
+        const rad = (d) => (d * Math.PI) / 180;
+        const dLat = rad(b.lat - a.lat);
+        const dLng = rad(b.lng - a.lng);
+        const h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)) * ROAD_FACTOR;
+    }
+
+    function kmText(km) {
+        return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
+    }
+
+    function minutesText(km) {
+        const minutes = Math.max(1, Math.round((km / AVG_SPEED_KMH) * 60));
+        if (minutes < 60) return minutes + '분';
+        const rest = minutes % 60;
+        return rest > 0 ? Math.floor(minutes / 60) + '시간 ' + rest + '분' : Math.floor(minutes / 60) + '시간';
+    }
+
+    function updateLegs() {
+        const items = courseItems();
+        let totalKm = 0;
+        let prevCoord = null;
+
+        items.forEach((item) => {
+            const note = item.querySelector('.leg-note');
+            const here = coordOf(item);
+            // 좌표가 없는 항목(특산물 등)은 구간을 만들지 않고 직전 좌표를 유지한다
+            if (note && here && prevCoord) {
+                const km = roadKm(prevCoord, here);
+                totalKm += km;
+                note.textContent = '이전 장소에서 약 ' + minutesText(km) + ' · ' + kmText(km) + ' (추정)';
+                note.classList.remove('hidden');
+            } else if (note) {
+                note.textContent = '';
+                note.classList.add('hidden');
+            }
+            if (here) prevCoord = here;
+        });
+
+        // 하루 코스 요약 카드가 있을 때만 총계를 갱신한다
+        const dur = document.getElementById('plan-duration');
+        const dist = document.getElementById('plan-distance');
+        if (dur) dur.textContent = totalKm > 0 ? minutesText(totalKm) : '—';
+        if (dist) dist.textContent = totalKm > 0 ? kmText(totalKm) : '—';
     }
 
     /* ---------- 임시 보관 (비로그인 → 로그인 왕복 시 코스 유지) ----------
@@ -156,6 +224,10 @@
 
     function restoreDraft() {
         try {
+            // '이 지역에서 하루 보내기'로 들어온 화면은 서버가 짠 코스가 답이다.
+            // 예전에 담아둔 임시본을 뒤에 덧붙이면 무엇이 추천인지 알 수 없게 된다.
+            if (timeline.getAttribute('data-autoplan') === 'true') return;
+
             const raw = sessionStorage.getItem(DRAFT_KEY);
             if (!raw) return;
             const draft = JSON.parse(raw);
@@ -380,8 +452,9 @@
         }
 
         if (d.pending) {
+            // 한도 소진 · 응답 실패 둘 다 여기로 온다 — 원인을 단정하지 않는다
             html += '<p class="font-caption text-caption text-text-muted mb-2">' +
-                '오늘 조회 한도를 다 써서 상세 설명을 가져오지 못했어요. 내일 다시 열어보면 표시됩니다.</p>';
+                '지금은 상세 설명을 가져오지 못했어요. 잠시 후 다시 열어보면 표시됩니다.</p>';
         }
 
         if (d.overview) {

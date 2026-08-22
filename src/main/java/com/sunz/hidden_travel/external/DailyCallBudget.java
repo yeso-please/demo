@@ -42,12 +42,20 @@ public class DailyCallBudget {
         return true;
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * 오늘 사용량.
+     *
+     * <p><b>REQUIRES_NEW + 스칼라 조회</b>여야 한다. 바깥 트랜잭션에 참여해 엔티티로 읽으면
+     * 1차 캐시에 남은 옛 값이 돌아온다. {@link #reserve}가 별도 트랜잭션에서 올린 값을
+     * 못 보게 되어, <b>한 요청 안에서 반복 호출하는 배치에서 한도 가드가 통째로 무력화</b>된다.
+     * (실제로 예산이 0인데도 계속 호출을 시도한 사고가 있었다)
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public int used(String service) {
-        return today(service).getCount();
+        String key = ApiCallUsage.keyOf(service, LocalDate.now(KST));
+        return repository.findCountByKey(key).orElse(0);
     }
 
-    @Transactional(readOnly = true)
     public int remaining(String service, int dailyLimit) {
         return Math.max(0, dailyLimit - used(service));
     }

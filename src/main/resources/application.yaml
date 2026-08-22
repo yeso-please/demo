@@ -89,6 +89,22 @@ gemini:
     model: gemini-flash-lite-latest
     timeout-seconds: 30
 
+# ----- 관광지 상세 설명 선적재 배치 -----
+# 상세 설명은 개인화 발견 엔진(임베딩·합성 질의·파인튜닝)의 재료다 — PRD §13-4 임계 경로.
+# 콘텐츠 1건당 호출 2회가 들고 1일 한도가 950이라 하루로는 못 채운다.
+# 매일 04:00(KST)에 남는 예산만큼 조금씩 채우고, 다 채우면 알아서 멈춘다.
+#
+#   (950 − 100) ÷ 2 ≈ 하루 425건  →  약 16일 소요
+#
+# 수동 실행:  POST /admin/sync/tour/details
+# 진행률:     GET  /admin/sync/tour/details/progress
+tour:
+  api:
+    backfill:
+      enabled: true             # false 로 두면 야간 자동 실행만 멈춘다(수동 실행은 가능)
+      cron: "0 0 4 * * *"       # KST
+      reserve-for-users: 100    # 낮에 사용자가 '자세히'를 펼칠 몫. 배치가 다 먹지 않게 남긴다
+
 # tour.api.key 는 커밋하지 않는다(공개 저장소 노출 방지).
 # 주입 방법(둘 중 하나):
 #   1) 환경변수 TOUR_API_KEY=... (relaxed binding → tour.api.key)

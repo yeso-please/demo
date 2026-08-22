@@ -199,6 +199,18 @@
         setShow(courseWrap, points.length > 0);
 
         document.getElementById('panel-go').setAttribute('href', '/region?sigCd=' + encodeURIComponent(sigCd));
+
+        // '이 지역에서 하루 보내기' — 코스를 조립할 수 있는 지역에서만 내보낸다.
+        // 눌러도 아무것도 안 나오는 버튼은 지역을 발견한 순간의 신뢰를 깎는다.
+        const dayBtn = document.getElementById('panel-day');
+        const dayNote = document.getElementById('panel-day-note');
+        if (dayBtn) {
+            const ok = data.dayPlanAvailable !== false;
+            dayBtn.setAttribute('href', ok ? '/course?sigCd=' + encodeURIComponent(sigCd) + '&auto=true' : '#');
+            // 안내 문구가 'hidden' 클래스로 숨겨져 있어 인라인 display 로는 못 되돌린다
+            dayBtn.classList.toggle('hidden', !ok);
+            if (dayNote) dayNote.classList.toggle('hidden', ok);
+        }
     }
 
     function openPanel() {
