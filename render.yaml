@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: hidden-travel
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # 값은 Render 대시보드에서 직접 입력 (여기엔 값을 넣지 않는다).
+      # Spring relaxed binding: TOUR_API_KEY -> tour.api.key,
+      # KAKAO_MOBILITY_REST_API_KEY -> kakao.mobility.rest-api-key
+      - key: TOUR_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: KAKAO_JS_KEY
+        sync: false
+      - key: KAKAO_MOBILITY_REST_API_KEY
+        sync: false

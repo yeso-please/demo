@@ -1,0 +1,13 @@
+.git
+.gradle
+build
+data
+uploads
+*.mv.db
+*.trace.db
+*.log
+config/application-secret.yaml
+config/*.bak
+docs
+figma-export
+.idea
