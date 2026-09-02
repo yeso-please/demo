@@ -3,14 +3,18 @@ HELP.md
 build/
 hs_err_pid*.log
 replay_pid*.log
-### H2 로컬 DB (개발용, 커밋 안 함) ###
-/data/
+### H2 로컬 DB / 수집 원본 (개발용, 커밋 안 함) ###
+/data/*
+!/data/README.md
+!/data/sample/
+!/data/sample/**
 *.mv.db
 *.trace.db
 ### 로컬 비밀 설정 (API 키 등, 커밋 금지) ###
 # 백업본(.bak)·환경별 파일까지 모두 막는다.
 # application-secret.yaml 만 막았다가 .bak 이 커밋될 뻔했다.
 /config/application-secret*
+!/config/application-secret.example.yaml
 /config/*.bak
 ### 후기 사진 업로드 (LocalImageStorage) ###
 /uploads/
@@ -57,3 +61,16 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 개인 AI/QA 도구 설정 ###
+/.claude/
+/.gstack/
+**/__pycache__/
+*.pyc
+
+### 실행 로그 / 임시 검증 산출물 ###
+*.log
+/course-recommendation-night.png
+/f.html
+/u.html
+/docs/prd.txt
