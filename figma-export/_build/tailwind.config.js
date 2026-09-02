@@ -1,6 +1,7 @@
 // fragments/layout.html 의 인라인 tailwind.config 를 그대로 옮긴 것.
 // Play CDN 이 런타임에 만들던 CSS 를 파일로 뽑기 위한 설정.
-const ROOT = "C:/Users/ysj18/Downloads/hidden-travel/hidden-travel/src/main/resources";
+const path = require("node:path");
+const ROOT = path.resolve(__dirname, "../../src/main/resources");
 
 module.exports = {
     darkMode: "class",

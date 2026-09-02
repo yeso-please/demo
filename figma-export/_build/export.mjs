@@ -8,13 +8,22 @@
 // 실행:  cd _build && node export.mjs   (앱이 8080 에 떠 있어야 한다)
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const BASE = "http://localhost:8080";
-const RES = "C:/Users/ysj18/Downloads/hidden-travel/hidden-travel/src/main/resources";
-const OUT = "C:/Users/ysj18/Downloads/hidden-travel/hidden-travel/figma-export";
-const DEMO = { email: "demo@sumeun.kr", password: "sumeun1234" };
+const BUILD = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(BUILD, "../..");
+const RES = path.join(ROOT, "src/main/resources");
+const OUT = path.join(ROOT, "figma-export");
+const DEMO = {
+    email: process.env.SUMEUN_DEMO_EMAIL,
+    password: process.env.SUMEUN_DEMO_PASSWORD,
+};
+if (!DEMO.email || !DEMO.password) {
+    throw new Error("SUMEUN_DEMO_EMAIL과 SUMEUN_DEMO_PASSWORD 환경변수가 필요합니다.");
+}
 
-const TW = fs.readFileSync("tw.css", "utf8");
+const TW = fs.readFileSync(path.join(BUILD, "tw.css"), "utf8");
 const TOKENS = fs.readFileSync(path.join(RES, "static/css/tokens.css"), "utf8");
 const ANIM = fs.readFileSync(path.join(RES, "static/css/animations.css"), "utf8");
 
@@ -161,8 +170,8 @@ await req("/signup", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded; charset=UTF-8" },
     body: new URLSearchParams({
-        email: `empty${Date.now()}@sumeun.kr`, password: "sumeun1234",
-        confirmPassword: "sumeun1234", nickname: "새 여행자", _csrf: t2 }),
+        email: `empty${Date.now()}@example.invalid`, password: DEMO.password,
+        confirmPassword: DEMO.password, nickname: "새 여행자", _csrf: t2 }),
 });
 await write("22-my-courses-empty.html", await page("/my/courses"));
 

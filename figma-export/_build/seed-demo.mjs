@@ -3,6 +3,13 @@
 import fs from "node:fs";
 
 const B = "http://localhost:8080";
+const DEMO = {
+    email: process.env.SUMEUN_DEMO_EMAIL,
+    password: process.env.SUMEUN_DEMO_PASSWORD,
+};
+if (!DEMO.email || !DEMO.password) {
+    throw new Error("SUMEUN_DEMO_EMAIL과 SUMEUN_DEMO_PASSWORD 환경변수가 필요합니다.");
+}
 let cookie = "";
 
 async function req(p, i = {}) {
@@ -23,7 +30,7 @@ const H = { "content-type": "application/x-www-form-urlencoded; charset=UTF-8" }
 await req("/");
 let token = await csrf("/signup");
 let r = await req("/signup", { method: "POST", headers: H, body: form({
-    email: "demo@sumeun.kr", password: "sumeun1234", confirmPassword: "sumeun1234",
+    email: DEMO.email, password: DEMO.password, confirmPassword: DEMO.password,
     nickname: "여행자 민서", _csrf: token }) });
 console.log("가입:", r.status, r.headers.get("location"));
 
@@ -75,4 +82,4 @@ fd.append("_csrf", token);
 r = await req("/review", { method: "POST", body: fd });
 console.log("후기:", r.status, r.headers.get("location"));
 
-console.log("\n데모 계정: demo@sumeun.kr / sumeun1234");
+console.log(`\n데모 계정 생성 완료: ${DEMO.email}`);

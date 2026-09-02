@@ -30,7 +30,7 @@ Thymeleaf가 DB 데이터로 렌더링한 **최종 HTML**을 담고 있습니다
 | `08-course-logged-out.html` | 코스 만들기 — "로그인하고 저장" |
 | `09-review-feed.html` | 후기 둘러보기 (MBTI 뱃지) |
 
-### 로그인 (demo@sumeun.kr)
+### 로그인 상태
 | 파일 | 화면 |
 |---|---|
 | `10-map.html` | 지도 — 오늘의 숨은 여행지 카드 |
@@ -84,6 +84,9 @@ node shoot.mjs          # 위 HTML 22종 → _png/  (앱 꺼져 있어도 됨)
 node shoot-live.mjs     # JS 화면 7종만 실제 앱에서 다시 찍어 덮어씀 (앱 필요)
 ```
 
+로그인 화면을 수집하는 스크립트는 저장소에 계정 정보를 넣지 않습니다. 실행 전에 현재 셸에
+`SUMEUN_DEMO_EMAIL`, `SUMEUN_DEMO_PASSWORD` 환경변수를 설정하세요.
+
 둘 다 1440×900 뷰포트 · 2배 해상도 · 전체 높이로 찍습니다.
 
 - `shoot.mjs` — `figma-export/*.html` 을 `file://` 로 연다. 번호로 일부만(`node shoot.mjs 10 11`),
@@ -115,4 +118,4 @@ node export.mjs
 > ⚠ **`tw.css` 재빌드를 빠뜨리면** 새로 추가한 클래스가 빠져 화면이 깨진 채로 나옵니다.
 
 데모 데이터(계정·코스·후기)가 없으면 로그인 화면들이 실패합니다.
-`seed-demo.mjs`로 먼저 넣어주세요. 계정: `demo@sumeun.kr` / `sumeun1234`
+환경변수를 설정한 뒤 `seed-demo.mjs`로 먼저 넣어주세요. 실제 값은 Git에 기록하지 않습니다.

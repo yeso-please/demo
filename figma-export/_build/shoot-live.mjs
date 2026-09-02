@@ -13,7 +13,13 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const BASE = "http://localhost:8080";
-const DEMO = { email: "demo@sumeun.kr", password: "sumeun1234" };
+const DEMO = {
+    email: process.env.SUMEUN_DEMO_EMAIL,
+    password: process.env.SUMEUN_DEMO_PASSWORD,
+};
+if (!DEMO.email || !DEMO.password) {
+    throw new Error("SUMEUN_DEMO_EMAIL과 SUMEUN_DEMO_PASSWORD 환경변수가 필요합니다.");
+}
 const OUT = path.join(path.resolve(fileURLToPath(import.meta.url), "../.."), "_png");
 const VIEWPORT = { width: 1440, height: 900 };
 
