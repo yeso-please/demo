@@ -26,6 +26,11 @@ public record DayPlan(
         boolean available,
         /** available=false 일 때 화면에 그대로 보여줄 사유 */
         String unavailableReason,
+        /**
+         * 코스 표지 사진. 담긴 자리 중 사진이 있는 첫 곳에서 가져온다.
+         * 전부 사진이 없으면 null — 화면은 표지 자체를 빼고 제목만 보여준다.
+         */
+        String coverImage,
         List<Stop> stops,
         /** 이 지역을 고를 만한 이유 — 전부 적재된 데이터에서 계산한 사실이다(지어내지 않는다) */
         List<String> reasons,
@@ -39,7 +44,17 @@ public record DayPlan(
          */
         List<String> noCoordNames,
         int hoursVerifiedCount,
-        int hoursCheckableCount
+        int hoursCheckableCount,
+        /**
+         * 이동 + 머무는 시간을 합한 추정 소요(분).
+         *
+         * <p>이게 없으면 화면에 남는 건 이동시간뿐인데, 그것만으로는
+         * "몇 시에 나가서 몇 시에 돌아오나"에 답할 수 없다 — 나들이를 정하는 건 그 답이다.
+         * 머무는 시간은 장소 성격별 추정치이므로 화면에 '대략'임을 밝힌다.
+         */
+        int totalMinutes,
+        /** totalMinutes 를 사람이 읽는 형태로 — "2시간 45분" */
+        String totalText
 ) {
 
     /**
@@ -65,7 +80,26 @@ public record DayPlan(
             String priceText,
             /** 관광지 이용시간 — 상세를 이미 받아둔 곳만 값이 있다 */
             String hoursText,
-            boolean hoursVerified
+            boolean hoursVerified,
+            /** 이 자리에서 머무는 시간(분) 추정 — 장소 성격에서 뽑는다 */
+            int stayMinutes,
+            /** 직전 자리에서 여기까지 이동(분) 추정. 첫 자리는 0 */
+            int legMinutes,
+            /**
+             * 운영시간을 <b>확실히 읽어낸 경우에만</b> 채운다 (OpeningHours 참고).
+             * 계절·요일별로 갈리는 원문은 전부 null 로 두고 원문(hoursText)만 보여준다 —
+             * 닫힌 곳을 열렸다고 단정하면 코스 전체를 못 믿게 된다.
+             */
+            boolean alwaysOpen,
+            Integer openMinutes,
+            Integer closeMinutes,
+            /** 휴무 요일 (1=월 … 7=일). 시간이 맞아도 그날은 헛걸음이다 */
+            Integer closedWeekday,
+            /**
+             * 이 장소가 어떤 곳인지. 없으면 null — 지어내지 않는다.
+             * 관광지 상세는 아직 일부만 확보돼 있어(DATA §3) 빈 자리가 많다.
+             */
+            String description
     ) {}
 
     public boolean hasStops() {
@@ -78,6 +112,10 @@ public record DayPlan(
 
     public boolean hasNoCoordStops() {
         return noCoordNames != null && !noCoordNames.isEmpty();
+    }
+
+    public boolean hasTotal() {
+        return totalMinutes > 0;
     }
 
     /** 운영시간을 확인할 수 있는 자리가 있는데 아직 다 못 채운 상태 — 화면이 이걸 숨기지 않는다 */

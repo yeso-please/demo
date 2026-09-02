@@ -5,6 +5,7 @@ import com.sunz.hidden_travel.service.ReviewService;
 import com.sunz.hidden_travel.storage.ImageStorage;
 import com.sunz.hidden_travel.user.AccountService;
 import com.sunz.hidden_travel.user.CurrentUserService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,12 +39,12 @@ public class ProfileController {
     }
 
     @GetMapping("/profile")
-    public String profile(Model model) {
+    public String profile(Model model, HttpSession session) {
         AppUser user = currentUserService.current();
         if (user == null) {
             return "redirect:/";
         }
-        fillModel(model, user);
+        fillModel(model, user, session);
         return "profile";
     }
 
@@ -87,8 +88,12 @@ public class ProfileController {
         return "redirect:/profile";
     }
 
-    private void fillModel(Model model, AppUser user) {
+    private void fillModel(Model model, AppUser user, HttpSession session) {
         model.addAttribute("user", user);
+        // 다이어리는 아직 세션에만 있다(Visit 엔티티 없음) — 로그인해도 브라우저를 닫으면 사라진다.
+        // 저장소가 붙으면 이 줄만 사용자 기준 조회로 바꾸면 된다.
+        Object visits = session.getAttribute(VisitOnboardingController.SESSION_VISITS);
+        model.addAttribute("visitCount", visits instanceof java.util.List<?> l ? l.size() : 0);
         model.addAttribute("courseCount", reviewService.myCourseCards(user.getId()).size());
         model.addAttribute("reviewCount", reviewService.myReviewCount(user.getId()));
     }

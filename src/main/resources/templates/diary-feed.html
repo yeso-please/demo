@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('여행 다이어리 — 숨은여행')}"></head>
+<body class="bg-background text-text-primary font-body-main antialiased min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="flex-1 pt-8 pb-section-gap px-4 md:px-section-gap max-w-container-max mx-auto w-full">
+
+    <!-- 1) 제목 -->
+    <section class="mb-section-gap animate-fade-up">
+        <h1 class="font-display-title text-display-title text-text-primary mb-2">다른 사람의 여행</h1>
+        <p class="font-body-main text-body-main text-text-muted">
+            누가 어디를 어떻게 다녀왔는지 읽어보세요. 마음이 가는 지역은 지도에서 눌러볼 수 있어요.
+        </p>
+    </section>
+
+    <!-- 2) 다이어리 카드
+         사진이 있는 편과 없는 편이 섞인다. 대부분은 과거 여행을 적은 '기억'이라 사진이 없다.
+         없는 자리에 회색 판을 두면 피드가 빈칸 투성이로 보이므로, 사진이 없으면
+         글이 카드의 주인공이 되게 한다. -->
+    <section th:if="${!diaries.isEmpty()}"
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-fade-in">
+        <a th:each="d : ${diaries}" th:href="@{'/diary/' + ${d.diaryId}}"
+           class="group bg-surface border border-border rounded-xl overflow-hidden flex flex-col hover:-translate-y-[2px] hover:border-primary transition-all duration-300">
+
+            <!-- 사진이 있을 때만 띠를 얹는다 -->
+            <div th:if="${d.hasPhoto()}" class="relative aspect-[4/3] bg-surface-alt overflow-hidden">
+                <img th:src="${d.coverPhoto}" th:alt="${d.regionLabel}" loading="lazy"
+                     class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"/>
+                <span th:if="${d.photoCount > 1}"
+                      class="absolute bottom-2 right-2 bg-surface/90 backdrop-blur-sm border border-border rounded-full px-2 py-0.5 font-caption text-caption text-text-primary">
+                    <span th:text="${d.photoCount}">3</span>장
+                </span>
+            </div>
+
+            <div class="p-card-padding flex flex-col gap-3 flex-1">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- 제목은 코스명이 아니라 지역이다. 대부분의 편에는 코스가 없다 -->
+                        <h2 class="font-card-title text-card-title text-primary" th:text="${d.regionLabel}">경상북도 안동시</h2>
+                        <span th:if="${d.whenText != null and !d.whenText.isBlank()}"
+                              class="font-caption text-caption text-text-muted" th:text="${d.whenText}">작년 가을</span>
+                    </div>
+                    <!-- 우리 추천으로 실제 다녀와서 쓴 편임을 밝힌다 -->
+                    <span th:if="${d.fromCourse()}"
+                          class="self-start inline-flex items-center gap-1 bg-sage-bg border border-sage-border rounded-full px-2 py-0.5 font-caption text-caption text-sage">
+                        <span class="material-symbols-outlined text-[14px]">route</span>
+                        코스대로 다녀옴
+                    </span>
+                </div>
+
+                <p class="font-body-main text-caption text-text-muted leading-relaxed line-clamp-4 flex-1"
+                   th:text="${d.excerpt}">여행 글</p>
+
+                <div th:if="${!d.tags.isEmpty()}" class="flex gap-1 flex-wrap">
+                    <span th:each="t : ${d.tags}"
+                          class="font-caption text-caption px-2 py-0.5 rounded-full bg-accent-soft text-accent-hover"
+                          th:text="${t}">골목</span>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-border pt-3 font-caption text-caption text-text-muted">
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">person</span>
+                        <span th:text="${d.nickname}">여행자</span>
+                    </span>
+                    <span th:text="${d.createdAt}">2026.07.30</span>
+                </div>
+            </div>
+        </a>
+    </section>
+
+    <!-- 3) 빈 상태 -->
+    <section th:if="${diaries.isEmpty()}"
+             class="border-2 border-dashed border-outline-variant rounded-xl p-10 flex flex-col items-center text-center gap-4 animate-fade-up">
+        <span class="material-symbols-outlined text-text-muted text-[40px]">edit_note</span>
+        <p class="font-body-main text-body-main text-text-muted">
+            아직 공개된 여행 글이 없어요.<br/>첫 글을 남겨 다른 여행자에게 지역을 알려주세요.
+        </p>
+        <a th:href="@{/onboarding/visits}" class="btn-primary">여행 한 편 적기</a>
+    </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

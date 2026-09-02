@@ -13,6 +13,9 @@ package com.sunz.hidden_travel.controller.dto;
  * - type        : 화면에 보이는 분류 라벨(관광지 · 한식 · 착한가격업소 …)
  * - dataType    : course.js 가 쓰는 값(attraction/food/goodprice/course).
  *                 저장 시 착한가격업소 수 집계가 이 값으로 이뤄져 라벨과 분리해 둔다.
+ * - description : 어떤 곳인지 한 줄. 없으면 null — 지어내지 않는다.
+ *                 '자세히'를 눌러야 보이면 코스는 이름의 목록으로만 읽힌다.
+ *                 가고 싶은지는 이름이 아니라 이 한 줄에서 갈린다.
  */
 public record CourseInitItem(
         int order,
@@ -26,5 +29,6 @@ public record CourseInitItem(
         String image,
         String addr,
         Double lat,
-        Double lng
+        Double lng,
+        String description
 ) {}

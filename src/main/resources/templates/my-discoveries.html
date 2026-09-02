@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('내 발견 지도 — 숨은여행')}"></head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8">
+
+    <section class="mb-6 text-center">
+        <h1 class="font-display-title text-display-title text-primary mb-2">내 발견 지도</h1>
+        <p class="font-body-main text-body text-text-muted">
+            다녀온 곳이 하나씩 켜집니다. 아직 어두운 곳이 당신의 다음 여행이에요.
+        </p>
+    </section>
+
+    <!-- 진행도 -->
+    <section class="bg-surface border border-border rounded-card p-card-padding mb-5">
+        <div class="flex items-end justify-between mb-3">
+            <div>
+                <span id="lit" class="font-display-title text-[2.4rem] text-primary leading-none"
+                      th:text="${litCount}">0</span>
+                <span class="font-body-main text-body text-text-muted">
+                    / <span th:text="${totalRegions}">250</span>곳을 밝혔어요
+                </span>
+            </div>
+            <span id="pct" class="font-caption text-caption text-text-muted">0%</span>
+        </div>
+        <div class="h-2 rounded-full bg-surface-alt overflow-hidden">
+            <div id="bar" class="h-full rounded-full transition-all duration-700"
+                 style="width:0;background:var(--accent)"></div>
+        </div>
+        <p id="nudge" class="mt-3 font-caption text-caption text-text-muted"></p>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+
+        <!-- 지도 -->
+        <section class="bg-surface border border-border rounded-card overflow-hidden">
+            <div class="relative">
+                <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-surface z-10">
+                    <span class="font-caption text-caption text-text-muted">지도를 불러오는 중…</span>
+                </div>
+                <svg id="my-map" class="w-full h-auto" viewBox="0 0 800 1000"
+                     preserveAspectRatio="xMidYMid meet" role="img"
+                     aria-label="내가 다녀온 지역이 켜진 전국 지도">
+                    <defs>
+                        <!-- /map 과 같은 빛 처리. 다만 여기서 켜진 불은 '다녀온 곳'이다. -->
+                        <filter id="lit-glow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur id="lit-glow-blur" stdDeviation="7" result="b"/>
+                            <feMerge><feMergeNode in="b"/><feMergeNode in="b"/></feMerge>
+                        </filter>
+                    </defs>
+                    <g id="my-base"></g>
+                    <g id="my-glow" filter="url(#lit-glow)" aria-hidden="true"></g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- 목록 -->
+        <section class="flex flex-col gap-4">
+            <div class="bg-surface border border-border rounded-card p-card-padding">
+                <h2 class="font-body-main text-body font-semibold mb-3">밝힌 지역</h2>
+                <ul id="lit-list" class="flex flex-col gap-2"></ul>
+                <p id="empty" class="font-caption text-caption text-text-muted hidden">
+                    아직 켜진 곳이 없어요. 다녀온 지역을 알려주시면 지도가 밝아집니다.
+                </p>
+            </div>
+
+            <a href="/onboarding/visits"
+               class="w-full py-3 rounded-input bg-primary text-on-primary font-body-main text-body font-semibold
+                      text-center hover:bg-accent-hover transition-colors">
+                다녀온 곳 추가하기
+            </a>
+            <a href="/map"
+               class="w-full py-3 rounded-input bg-surface border border-border font-body-main text-body
+                      text-center hover:border-primary transition-colors">
+                다음 여행지 찾아보기
+            </a>
+
+            <!-- 공유 — 코스가 아니라 지도를 나눈다.
+                 공개한 편만 남의 지도에 보이므로, 비공개로 쓴 여행은 불도 켜지지 않는다. -->
+            <button th:if="${shareUrl != null}" type="button" id="share-map"
+                    th:attr="data-url=${shareUrl}"
+                    class="w-full py-3 rounded-input bg-surface border border-border font-body-main text-body
+                           text-center hover:border-primary transition-colors flex items-center justify-center gap-1.5">
+                <span class="material-symbols-outlined text-[18px]">share</span>
+                <span id="share-label">내 지도 링크 복사</span>
+            </button>
+            <p th:if="${shareUrl == null and loggedIn}" class="font-caption text-caption text-text-muted text-center">
+                공개한 여행이 있어야 지도를 나눌 수 있어요.
+            </p>
+
+            <p th:if="${!loggedIn}" class="font-caption text-caption text-text-muted text-center">
+                지금은 이 브라우저에만 기록돼요. 가입하면 계속 쌓입니다.
+            </p>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<style>
+    /* 꺼진 지역 — 전국이 먼저 보이되 조용하게 */
+    #my-map .region { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: .85px; vector-effect: non-scaling-stroke; }
+    /* 켜진 지역 = 다녀온 곳 */
+    #my-map .region.lit { fill: var(--accent); stroke: var(--accent-hover); stroke-width: 1.1px; }
+    #my-map .region:hover { cursor: default; }
+    #my-map .region.lit:hover { cursor: pointer; }
+
+    .lit-row {
+        display: flex; align-items: center; gap: .6rem;
+        padding: .5rem .6rem; border-radius: .5rem; background: var(--surface-alt);
+    }
+    .lit-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+    .lit-name { font-size: .9rem; }
+    .lit-tags { margin-left: auto; font-size: .72rem; color: var(--text-muted); }
+</style>
+
+<script src="/js/d3-array.min.js"></script>
+<script src="/js/d3-geo.min.js"></script>
+<script src="/js/topojson-client.min.js"></script>
+<script src="/js/my-discoveries.js"></script>
+<script>
+    // 링크 복사 — 복사됐다는 사실을 버튼 자리에서 바로 알린다
+    (function () {
+        const btn = document.getElementById('share-map');
+        if (!btn) return;
+        const label = document.getElementById('share-label');
+        btn.addEventListener('click', async () => {
+            // 서버는 경로만 준다. 붙여넣어 쓸 수 있게 현재 호스트를 붙인다
+            const url = location.origin + btn.getAttribute('data-url');
+            try {
+                await navigator.clipboard.writeText(url);
+                label.textContent = '링크를 복사했어요';
+            } catch (e) {
+                // 클립보드를 막아둔 브라우저 — 주소를 그대로 보여줘 직접 복사하게 한다
+                label.textContent = url;
+            }
+            setTimeout(() => { label.textContent = '내 지도 링크 복사'; }, 2400);
+        });
+    })();
+</script>
+</body>
+</html>

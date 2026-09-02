@@ -57,6 +57,16 @@ import java.util.Set;
 @Service
 public class DayPlanService {
 
+    /**
+     * 하루 코스의 경유지로 쓸 수 있는 Attraction 유형.
+     *
+     * Attraction 테이블에는 숙박·쇼핑·축제도 함께 적재된다.
+     * 숙박은 코스 중간에 들어갈 곳이 아니고, 축제는 기간이 지나면 갈 수 없으므로 제외한다.
+     * (축제를 코스에 넣으려면 eventStartDate/eventEndDate 로 기간을 먼저 걸러야 한다)
+     */
+    private static final java.util.Set<String> COURSE_STOP_TYPES =
+            java.util.Set.of("관광지", "문화시설", "레포츠");
+
     /** 직선거리 → 실제 도로 거리 보정 계수 */
     private static final double ROAD_FACTOR = 1.3;
 
@@ -75,10 +85,34 @@ public class DayPlanService {
     /** 하루라고 부르려면 최소 두 곳 */
     private static final int MIN_STOPS = 2;
 
+    /**
+     * 코스 길이. <b>반나절은 하루를 자른 게 아니라 성격이 다르다.</b>
+     *
+     * <pre>
+     * 하루    이동 1~2시간 → 관광지 2~3곳 + 식사 2회   (어디로 갈까)
+     * 반나절  이동 30분     → 한 군데 깊게 + 한 끼/카페 (지금 나갈까)
+     * </pre>
+     *
+     * 그래서 반나절은 슬롯 수만 줄이지 않고 <b>고르는 기준 자체를 바꾼다</b> —
+     * 걷기 좋은 곳을 먼저 잡고, 그 옆에 앉을 자리를 붙인다.
+     */
+    public enum Length { HALF, DAY }
+
+    /** 반나절에서 먼저 집는 '걷기 좋은' 장소의 단서 — 이름으로만 판정한다(설명은 15%만 확보돼 있다) */
+    private static final List<String> WALKABLE_HINTS =
+            List.of("길", "공원", "산책", "둘레", "숲", "천변", "하천", "호수", "저수지",
+                    "해변", "해안", "강변", "거리", "마을");
+
+    /** 반나절 코스 최대 정거장 — 이보다 많으면 '나들이'가 아니라 하루가 된다 */
+    private static final int HALF_MAX_STOPS = 3;
+
     private static final int MAX_REASONS = 3;
 
     /** 이용시간 원문은 길고 태그가 섞여 있다 — 요약해 보여줄 길이 */
     private static final int HOURS_MAX_LEN = 60;
+
+    /** 카드에 넣을 소개 길이 — 이보다 길면 카드가 목록이 아니라 글이 된다 */
+    private static final int DESC_MAX_LEN = 110;
 
     private final RegionRepository regionRepository;
     private final AttractionRepository attractionRepository;
@@ -110,6 +144,23 @@ public class DayPlanService {
      */
     @Transactional(readOnly = true)
     public DayPlan plan(String sigCd, int variant) {
+        return plan(sigCd, variant, Length.DAY);
+    }
+
+    /**
+     * 반나절 코스. 걷기 좋은 곳 하나를 중심으로 잡고 앉을 자리를 붙인다.
+     *
+     * <p>하루 코스를 잘라 쓰지 않는 이유는 {@link Length} 주석에 적었다.
+     * 여기서 만든 제목은 코스가 실제로 가진 성격을 옮긴 문장이라 사실과 어긋날 수 없다
+     * (LLM 으로 생성하지 않는다 — PRD 제품원칙 4).
+     */
+    @Transactional(readOnly = true)
+    public DayPlan planHalf(String sigCd, int variant) {
+        return plan(sigCd, variant, Length.HALF);
+    }
+
+    @Transactional(readOnly = true)
+    public DayPlan plan(String sigCd, int variant, Length length) {
         Region region = regionRepository.findById(sigCd).orElse(null);
         String name = region != null ? region.getName() : "이 지역";
         String province = region != null ? region.getProvince() : "";
@@ -120,6 +171,7 @@ public class DayPlanService {
 
         List<Place> spots = attractions.stream()
                 .filter(a -> hasCoord(a.getLat(), a.getLng()))
+                .filter(a -> COURSE_STOP_TYPES.contains(a.getType() == null ? "관광지" : a.getType()))
                 .map(DayPlanService::fromAttraction)
                 .toList();
         // 착한가격업소는 좌표가 없다 — 걸러내면 가격 근거가 통째로 사라지므로 그대로 둔다
@@ -146,6 +198,10 @@ public class DayPlanService {
         List<Place> picked = new ArrayList<>();
         List<String> slots = new ArrayList<>();
         Set<String> used = new HashSet<>();
+
+        if (length == Length.HALF) {
+            return planHalf(sigCd, name, province, variant, spots, eateries, goodPriceMeals, picked, slots, used);
+        }
 
         // 오전 — 사진이 있는 관광지 우선. 회차(variant)로 다른 조합을 뽑는다
         Place morning = pickFirst(spots, sigCd, variant);
@@ -194,19 +250,27 @@ public class DayPlanService {
         // 구간별 표기는 화면(course.js)이 같은 식으로 다시 계산한다.
         // 사용자가 순서를 바꾸거나 장소를 빼면 값이 달라지기 때문에 서버 값을 고정해 둘 수 없다.
         double totalKm = 0;
+        int totalMin = 0;
         Place prev = null;
         List<DayPlan.Stop> stops = new ArrayList<>();
         for (int i = 0; i < picked.size(); i++) {
             Place p = picked.get(i);
+            int leg = 0;
             if (hasCoord(p)) {
                 if (prev != null) {
                     totalKm += roadKm(prev, p);
+                    leg = legMinutes(prev, p);
                 }
                 prev = p;
             }
+            int stay = stayMinutes(p);
+            totalMin += stay + leg;
+            OpeningHours.Parsed oh = OpeningHours.parse(p.hoursText());
             stops.add(new DayPlan.Stop(i + 1, slots.get(i), p.name(), p.dataType(), p.category(),
                     p.sage(), p.attractionId(), p.image(), p.addr(), p.lat(), p.lng(),
-                    p.priceText(), p.hoursText(), p.hoursText() != null));
+                    p.priceText(), p.hoursText(), p.hoursText() != null, stay, leg,
+                    oh.alwaysOpen(), oh.openMinutes(), oh.closeMinutes(), oh.closedWeekday(),
+                    summary(p.description())));
         }
 
         int hoursCheckable = (int) stops.stream().filter(s -> s.attractionId() != null).count();
@@ -215,12 +279,13 @@ public class DayPlanService {
         // 이동 추정에서 빠진 곳 — 화면이 이 사실을 그대로 알린다
         List<String> noCoord = picked.stream().filter(p -> !hasCoord(p)).map(Place::name).toList();
 
-        return new DayPlan(sigCd, name, province, name + "에서 보내는 하루", variant, true, null,
+        return new DayPlan(sigCd, name, province, moodLine(picked), variant, true, null,
+                cover(stops),
                 stops,
                 reasons(sigCd, morning, picked, attractions, foods, totalKm),
                 kmText(totalKm), minutesText(totalKm),
                 costText(picked), noCoord,
-                hoursVerified, hoursCheckable);
+                hoursVerified, hoursCheckable, totalMin, durationOf(totalMin));
     }
 
     /**
@@ -248,7 +313,8 @@ public class DayPlanService {
         }
         return plan.stops().stream()
                 .map(s -> new CourseInitItem(s.order(), s.slot(), s.name(), s.category(), s.dataType(),
-                        s.sage(), s.attractionId(), null, s.image(), s.addr(), s.lat(), s.lng()))
+                        s.sage(), s.attractionId(), null, s.image(), s.addr(), s.lat(), s.lng(),
+                        s.description()))
                 .toList();
     }
 
@@ -260,6 +326,238 @@ public class DayPlanService {
      * 첫 장소. 사진이 있는 곳을 앞세우되(카드가 비어 보이지 않게),
      * 이름순으로 정렬한 뒤 회차로 인덱스를 잡아 <b>같은 입력이면 같은 결과</b>가 나오게 한다.
      */
+    /* =========================================================
+       반나절 조립
+       ========================================================= */
+
+    /**
+     * 걷기 좋은 곳 하나 → 그 옆에 앉을 자리 → (가능하면) 근처 한 곳 더.
+     *
+     * 슬롯 이름도 시간표(오전·점심)가 아니라 나들이 어휘를 쓴다.
+     * 반나절에 "오전/오후"를 붙이면 하루 코스를 자른 것처럼 읽힌다.
+     */
+    private DayPlan planHalf(String sigCd, String name, String province, int variant,
+                             List<Place> spots, List<Place> eateries, List<Place> goodPriceMeals,
+                             List<Place> picked, List<String> slots, Set<String> used) {
+
+        Place first = pickWalkable(spots, sigCd, variant);
+        if (first == null) {
+            first = pickFirst(spots, sigCd, variant);
+        }
+        if (first == null) {
+            return unavailable(sigCd, name, province, variant,
+                    "이 지역은 걸어 둘러볼 만한 곳을 찾지 못했어요. 하루 코스로 보시겠어요?");
+        }
+        picked.add(first);
+        slots.add("여기부터");
+        used.add(first.name());
+
+        // 앉을 자리 — 카페를 먼저 본다. 반나절에서는 끼니보다 '쉬어가기'가 자연스럽다
+        Place rest = nearestCafe(first, eateries, used);
+        if (rest == null) rest = pickGoodPriceMeal(first, goodPriceMeals, used, sigCd, variant);
+        if (rest == null) rest = nearestMeal(first, eateries, used);
+        if (rest != null) {
+            picked.add(rest);
+            slots.add(rest.cafe() ? "쉬어가기" : "한 끼");
+            used.add(rest.name());
+        }
+
+        // 여유가 되면 근처 한 곳 더 — 여기서 멈춰야 '나들이'다
+        if (picked.size() < HALF_MAX_STOPS) {
+            Place more = nearest(anchorOf(picked), spots, used);
+            if (more != null) {
+                picked.add(more);
+                slots.add("걷고 나서");
+                used.add(more.name());
+            }
+        }
+
+        if (picked.size() < MIN_STOPS) {
+            return unavailable(sigCd, name, province, variant,
+                    "이 지역은 장소가 서로 멀어 반나절로 묶기 어려웠어요.");
+        }
+
+        double totalKm = 0;
+        int totalMin = 0;
+        Place prev = null;
+        List<DayPlan.Stop> stops = new ArrayList<>();
+        for (int i = 0; i < picked.size(); i++) {
+            Place p = picked.get(i);
+            int leg = 0;
+            if (hasCoord(p)) {
+                if (prev != null) {
+                    totalKm += roadKm(prev, p);
+                    leg = legMinutes(prev, p);
+                }
+                prev = p;
+            }
+            int stay = stayMinutes(p);
+            totalMin += stay + leg;
+            OpeningHours.Parsed oh = OpeningHours.parse(p.hoursText());
+            stops.add(new DayPlan.Stop(i + 1, slots.get(i), p.name(), p.dataType(), p.category(),
+                    p.sage(), p.attractionId(), p.image(), p.addr(), p.lat(), p.lng(),
+                    p.priceText(), p.hoursText(), p.hoursText() != null, stay, leg,
+                    oh.alwaysOpen(), oh.openMinutes(), oh.closeMinutes(), oh.closedWeekday(),
+                    summary(p.description())));
+        }
+        int hoursCheckable = (int) stops.stream().filter(s -> s.attractionId() != null).count();
+        int hoursVerified = (int) stops.stream().filter(DayPlan.Stop::hoursVerified).count();
+        List<String> noCoord = picked.stream().filter(p -> !hasCoord(p)).map(Place::name).toList();
+
+        return new DayPlan(sigCd, name, province, moodLine(picked), variant, true, null,
+                cover(stops),
+                stops, halfReasons(name, picked, totalKm),
+                kmText(totalKm), minutesText(totalKm), costText(picked), noCoord,
+                hoursVerified, hoursCheckable, totalMin, durationOf(totalMin));
+    }
+
+    /**
+     * 코스 표지 사진 — 담긴 자리 중 사진이 있는 <b>첫 곳</b>.
+     *
+     * <p>가장 예쁜 사진을 고르고 싶지만 우리에겐 사진의 좋고 나쁨을 판단할 근거가 없다.
+     * 그래서 순서를 따른다 — 표지가 코스의 첫 자리와 같아야 "여기서 시작하는구나"로 읽힌다.
+     * 전부 사진이 없으면 null (표지를 빼는 편이 회색 자리를 두는 것보다 낫다).
+     */
+    private static String cover(List<DayPlan.Stop> stops) {
+        return stops.stream()
+                .map(DayPlan.Stop::image)
+                .filter(img -> img != null && !img.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** 이름에 걷기 단서가 있는 곳을 먼저 집는다 */
+    private Place pickWalkable(List<Place> spots, String sigCd, int variant) {
+        List<Place> walkable = spots.stream()
+                .filter(p -> hasCoord(p))
+                .filter(p -> {
+                    String n = p.name() == null ? "" : p.name();
+                    return WALKABLE_HINTS.stream().anyMatch(n::contains);
+                })
+                .sorted(Comparator.comparing(Place::name))
+                .toList();
+        if (walkable.isEmpty()) return null;
+        return walkable.get(Math.floorMod((sigCd + "#walk#" + variant).hashCode(), walkable.size()));
+    }
+
+    private Place nearestCafe(Place from, List<Place> pool, Set<String> used) {
+        List<Place> cafes = pool.stream().filter(Place::cafe).filter(p -> !used.contains(p.name())).toList();
+        return cafes.isEmpty() ? null : nearest(from, cafes, used);
+    }
+
+    /**
+     * 코스 성격을 한 문장으로 옮긴다.
+     *
+     * <b>LLM 을 쓰지 않는다.</b> 이 문장은 코스가 실제로 담고 있는 것(걷는 곳이 있는지,
+     * 앉을 자리가 있는지)의 번역이라 사실과 어긋날 수 없다. 생성 문구를 쓰면
+     * 없는 계절감·없는 장소가 섞일 수 있고 PRD 제품원칙 4 와 충돌한다.
+     */
+    private static String moodLine(List<Place> picked) {
+        String scene = sceneOf(picked);                       // 공원 / 물가 / 골목 …
+        boolean cafe = picked.stream().anyMatch(Place::cafe);
+        boolean meal = picked.stream().anyMatch(p -> "food".equals(p.dataType()) && !p.cafe());
+
+        if (scene == null) {
+            if (cafe) return "가까운 곳에서 쉬었다 오는 반나절";
+            if (meal) return "밥만 먹고 와도 좋은 반나절";
+            return "멀리 가지 않는 반나절";
+        }
+        if (cafe) return scene + " 걷다가 앉기 좋은 반나절";
+        if (meal) return scene + " 걷고 한 끼 하는 반나절";
+        return scene + " 걷는 데만 쓰는 반나절";
+    }
+
+    /**
+     * 첫 장소의 이름에서 '어디를 걷는지'를 뽑는다.
+     *
+     * 문장을 다양하게 만들려는 장치가 아니라 <b>실제로 다른 곳이니 다르게 불러야</b> 하는 것이다.
+     * 공원과 해변과 골목은 같은 '산책'이 아니다.
+     * 단서가 없으면 null 을 돌려 일반 문장으로 떨어뜨린다 — 없는 분위기를 지어내지 않는다.
+     */
+    private static String sceneOf(List<Place> picked) {
+        for (Place p : picked) {
+            String n = p.name() == null ? "" : p.name();
+            if (n.contains("해변") || n.contains("해안") || n.contains("항")) return "바다를 끼고";
+            if (n.contains("호수") || n.contains("저수지") || n.contains("천변")
+                    || n.contains("하천") || n.contains("강변")) return "물가를 따라";
+            if (n.contains("숲") || n.contains("수목")) return "숲길을";
+            if (n.contains("공원")) return "공원을";
+            if (n.contains("둘레") || n.contains("산책")) return "둘레길을";
+            if (n.contains("골목") || n.contains("마을") || n.contains("거리")) return "골목을";
+            if (n.contains("길")) return "길을";
+        }
+        return null;
+    }
+
+    private List<String> halfReasons(String regionName, List<Place> picked, double totalKm) {
+        List<String> out = new ArrayList<>();
+        out.add(regionName + "에서 " + picked.size() + "곳만 들르는 짧은 동선이에요.");
+        // 거리와 무관하게 "걸어서도"를 붙이면 안 된다 — 8.5km 는 도보 2시간이다.
+        // 근거 문장이 한 번 틀리면 나머지 근거도 못 믿게 된다.
+        if (totalKm > 0 && totalKm <= 2.0) {
+            out.add("장소 사이가 " + kmText(totalKm) + " 라 걸어서 이어집니다.");
+        } else if (totalKm > 0) {
+            out.add("장소 사이 이동이 " + kmText(totalKm) + " — 차로 " + minutesText(totalKm) + " 걸려요.");
+        }
+        picked.stream().filter(Place::sage).findFirst().ifPresent(p ->
+                out.add("착한가격업소 " + p.name() + "이(가) 코스에 들어 있어요."));
+        return out.stream().limit(MAX_REASONS).toList();
+    }
+
+
+    /* =========================================================
+       시간 추정
+       ========================================================= */
+
+    /**
+     * 장소 성격별 머무는 시간(분).
+     *
+     * <p>이동시간만 보여주면 "13분 코스"처럼 읽혀서 나들이를 정할 수가 없다.
+     * 실제로 시간을 잡아먹는 건 이동이 아니라 <b>머무는 시간</b>이다.
+     * 값은 추정치이므로 화면에서 '대략'임을 밝힌다 — 정확한 체류 데이터는 어디에도 없다.
+     */
+    private static int stayMinutes(Place p) {
+        if ("food".equals(p.dataType()) || "goodprice".equals(p.dataType())) {
+            return p.cafe() ? 40 : 60;
+        }
+        String n = p.name() == null ? "" : p.name();
+        // 걷는 곳은 길게 — 공원·둘레길은 한 바퀴가 곧 목적이다
+        if (WALKABLE_HINTS.stream().anyMatch(n::contains)) return 70;
+        if (n.contains("박물관") || n.contains("미술관") || n.contains("전시") || n.contains("기념관")) return 60;
+        if (n.contains("전망") || n.contains("정자") || n.contains("포구")) return 25;
+        return 45;
+    }
+
+    /**
+     * 소개 문구를 카드에 들어갈 길이로 줄인다.
+     *
+     * 원문에는 HTML 태그와 줄바꿈이 섞여 있다. 문장 경계에서 자르되,
+     * 자를 곳을 못 찾으면 그냥 길이로 자른다 — 없는 문장을 만들지는 않는다.
+     */
+    private static String summary(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String t = raw.replaceAll("<[^>]*>", " ").replaceAll("\s+", " ").trim();
+        if (t.isEmpty()) return null;
+        if (t.length() <= DESC_MAX_LEN) return t;
+        int cut = t.lastIndexOf('.', DESC_MAX_LEN);
+        if (cut < DESC_MAX_LEN / 2) cut = t.lastIndexOf(' ', DESC_MAX_LEN);
+        return (cut > 0 ? t.substring(0, cut) : t.substring(0, DESC_MAX_LEN)).trim() + "…";
+    }
+
+    /** 구간 이동 시간(분) — 거리 추정과 같은 계수를 쓴다 */
+    private int legMinutes(Place from, Place to) {
+        if (from == null || !hasCoord(from) || !hasCoord(to)) return 0;
+        double km = roadKm(from, to);
+        return (int) Math.max(1, Math.round(km / AVG_SPEED_KMH * 60));
+    }
+
+    private static String durationOf(int minutes) {
+        if (minutes <= 0) return null;
+        int h = minutes / 60, m = minutes % 60;
+        if (h == 0) return m + "분";
+        return m == 0 ? h + "시간" : h + "시간 " + m + "분";
+    }
+
     private Place pickFirst(List<Place> spots, String sigCd, int variant) {
         List<Place> withImage = spots.stream().filter(p -> p.image() != null && !p.image().isBlank()).toList();
         List<Place> pool = withImage.isEmpty() ? spots : withImage;
@@ -451,7 +749,9 @@ public class DayPlanService {
             String priceText, Integer price,
             String hoursText,
             /** 카페·전통찻집 — 끼니 자리에서는 뒤로 미룬다 */
-            boolean cafe
+            boolean cafe,
+            /** 장소 소개 원문 — 없으면 null */
+            String description
     ) {}
 
     private static boolean hasCoord(Double lat, Double lng) {
@@ -466,7 +766,7 @@ public class DayPlanService {
         return new Place(a.getName(), "attraction",
                 a.getType() != null && !a.getType().isBlank() ? a.getType() : "관광지",
                 false, a.getId(), a.getImage(), a.getAddr(), a.getLat(), a.getLng(),
-                null, null, hoursOf(a), false);
+                null, null, hoursOf(a), false, a.getDescription());
     }
 
     private static Place fromGoodPriceShop(GoodPriceShop s) {
@@ -475,13 +775,13 @@ public class DayPlanService {
         return new Place(s.getName(), "goodprice",
                 s.getCategory() != null && !s.getCategory().isBlank() ? s.getCategory() : "착한가격업소",
                 true, null, null, s.getAddr(), s.getLat(), s.getLng(),
-                (menu + price).trim(), s.getPrice(), null, false);
+                (menu + price).trim(), s.getPrice(), null, false, null);
     }
 
     private static Place fromFoodPlace(FoodPlace f) {
         return new Place(f.getName(), "food", FoodCategories.label(f.getCategory()),
-                false, null, null, f.getAddr(), f.getLat(), f.getLng(),
-                null, null, null, FoodCategories.isCafe(f.getCategory()));
+                false, null, f.getImage(), f.getAddr(), f.getLat(), f.getLng(),
+                null, null, shorten(f.getUsetime()), FoodCategories.isCafe(f.getCategory()), f.getDescription());
     }
 
     /**
@@ -489,7 +789,11 @@ public class DayPlanService {
      * 원문에 태그·줄바꿈이 섞여 있어 한 줄로 줄인다. 없으면 null 이고 화면이 "미확인"으로 표시한다.
      */
     private static String hoursOf(Attraction a) {
-        String raw = a.getUsetime();
+        return shorten(a.getUsetime());
+    }
+
+    /** 이용시간 원문 정리 — 관광지와 음식점이 같은 규칙을 쓴다 */
+    private static String shorten(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
@@ -502,6 +806,6 @@ public class DayPlanService {
 
     private DayPlan unavailable(String sigCd, String name, String province, int variant, String reason) {
         return new DayPlan(sigCd, name, province, name + "에서 보내는 하루", variant, false, reason,
-                List.of(), List.of(), null, null, null, List.of(), 0, 0);
+                null, List.of(), List.of(), null, null, null, List.of(), 0, 0, 0, null);
     }
 }

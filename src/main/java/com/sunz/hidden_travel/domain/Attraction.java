@@ -83,4 +83,15 @@ public class Attraction {
      */
     @Column(name = "detail_fetched", nullable = false, columnDefinition = "boolean default false")
     private boolean detailFetched = false;
+
+    /**
+     * 축제 시작일 (yyyyMMdd). type="축제" 일 때만 채워진다.
+     * TourAPI 가 문자열로 주므로 원문 그대로 보관한다(형식 오류가 섞여도 적재가 실패하지 않게).
+     */
+    @Column(name = "event_start_date", length = 8)
+    private String eventStartDate;
+
+    /** 축제 종료일 (yyyyMMdd). type="축제" 일 때만 채워진다. */
+    @Column(name = "event_end_date", length = 8)
+    private String eventEndDate;
 }

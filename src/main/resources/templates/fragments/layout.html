@@ -68,10 +68,11 @@
                         "on-surface": "var(--text)",
                         "on-surface-variant": "var(--text)",
                         "on-background": "var(--text)",
-                        "on-primary": "#ffffff",
-                        "on-primary-container": "#ffffff",
-                        "on-secondary": "#ffffff",
+                        "on-primary": "var(--on-accent)",
+                        "on-primary-container": "var(--on-accent)",
+                        "on-secondary": "var(--on-accent)",
                         "sage-bg": "var(--sage-bg)",
+                        "sage-border": "var(--sage-border)",
                         "sage": "var(--sage)",
                         "secondary": "var(--sage)",
                         "on-secondary-fixed-variant": "var(--sage)",
@@ -79,6 +80,7 @@
                     },
                     fontFamily: {
                         "body-main": "var(--font-sans)",
+                        "body": "var(--font-sans)",
                         "section-title": "var(--font-sans)",
                         "card-title": "var(--font-sans)",
                         "caption": "var(--font-sans)",
@@ -92,6 +94,7 @@
                         "section-title": ["22px", { lineHeight: "1.4", letterSpacing: "-0.01em", fontWeight: "600" }],
                         "card-title": ["17px", { lineHeight: "1.4", letterSpacing: "-0.01em", fontWeight: "600" }],
                         "body-main": ["15px", { lineHeight: "1.7", letterSpacing: "-0.01em", fontWeight: "400" }],
+                        "body": ["15px", { lineHeight: "1.7", letterSpacing: "-0.01em", fontWeight: "400" }],
                         "caption": ["13px", { lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "400" }]
                     },
                     spacing: {
@@ -106,6 +109,7 @@
                         "xl": "var(--radius-card)",
                         "full": "var(--radius-chip)",
                         "input": "var(--radius-btn)",
+                        "card": "var(--radius-card)",
                         "login-card": "var(--radius-card)"
                     }
                 }
@@ -116,6 +120,7 @@
     <!-- Design tokens & 화면 애니메이션 -->
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/animations.css}">
+    <link rel="stylesheet" th:href="@{/css/trip.css}">
 </head>
 
 <body>
@@ -141,11 +146,21 @@
                    placeholder="지역을 검색해 보세요" aria-label="지역 검색">
         </form>
 
-        <!-- Nav: 내 코스 · 후기 둘러보기 -->
+        <!-- Nav — 화면 플로우 순서 그대로: 적는다 → 켜진다 → 나간다 → 담은 것 → 남의 이야기.
+             '맞춤 여행'(조건 폼 → 후보 3안)은 다이어리가 대체한 이전 기획이라 뺐다.
+             다이어리는 이 서비스의 유일한 입력이므로 모든 화면에서 한 번에 닿아야 한다. -->
         <nav class="site-nav">
-            <a th:href="@{/chat}" class="site-nav__link site-nav__link--ai">
-                <span class="material-symbols-outlined">auto_awesome</span>
-                AI 추천
+            <a th:href="@{/onboarding/visits}" class="site-nav__link site-nav__link--ai">
+                <span class="material-symbols-outlined">edit_note</span>
+                여행 기록
+            </a>
+            <a th:href="@{/my/discoveries}" class="site-nav__link">
+                <span class="material-symbols-outlined">map</span>
+                내 지도
+            </a>
+            <a th:href="@{/nearby}" class="site-nav__link">
+                <span class="material-symbols-outlined">near_me</span>
+                근처
             </a>
             <a th:if="${currentUser != null}" th:href="@{/my/courses}" class="site-nav__link">
                 <span class="material-symbols-outlined">bookmark</span>
@@ -153,7 +168,7 @@
             </a>
             <a th:href="@{/reviews}" class="site-nav__link">
                 <span class="material-symbols-outlined">rate_review</span>
-                후기 둘러보기
+                후기
             </a>
         </nav>
 
@@ -272,13 +287,13 @@
         }
         .site-nav__link:hover { background: var(--accent-soft); color: var(--accent); }
         .site-nav__link .material-symbols-outlined { font-size: 18px; }
-        /* AI 추천은 진입점이라 한 단계 강조한다 */
+        /* 조건 탐색은 지도 발견을 대체하지 않는 보조 진입점이다 */
         .site-nav__link--ai {
-            color: var(--accent);
-            background: var(--accent-soft);
-            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            font-weight: 400;
         }
-        .site-nav__link--ai:hover { background: var(--accent); color: #fff; }
+        .site-nav__link--ai:hover { background: var(--accent); color: var(--on-accent); }
         /* 로그아웃 버튼도 링크와 같은 모양으로 */
         button.site-nav__link { border: none; background: none; cursor: pointer; }
         .site-account {

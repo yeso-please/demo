@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('가까운 나들이 — 숨은여행')}"></head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
+
+    <section class="mb-6">
+        <h1 class="font-display-title text-display-title text-primary mb-2">이번 주말, 가까운 데</h1>
+        <p class="font-body-main text-body text-text-muted max-w-2xl">
+            멀리 안 가는 반나절이에요. 걷기 좋은 곳 하나에 앉을 자리를 붙였습니다.
+        </p>
+        <p th:if="${!hasProfile}" class="mt-2 font-caption text-caption text-text-muted">
+            다녀온 곳을 알려주시면 취향에 맞춰 골라드려요. 지금은 가까운 순으로 보여드립니다.
+        </p>
+    </section>
+
+    <!-- 조건 -->
+    <section class="bg-surface border border-border rounded-card p-card-padding mb-5">
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="locate"
+                    class="px-4 py-2 rounded-input bg-primary text-on-primary font-body-main text-body font-semibold
+                           hover:bg-accent-hover transition-colors">
+                내 위치로 찾기
+            </button>
+            <div class="flex items-center gap-2">
+                <label for="start" class="font-caption text-caption text-text-muted">출발</label>
+                <input type="time" id="start" value="14:00" step="1800"
+                       class="px-3 py-2 rounded-input bg-surface-alt border border-border font-body-main text-body">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="km" class="font-caption text-caption text-text-muted">반경</label>
+                <select id="km" class="px-3 py-2 rounded-input bg-surface-alt border border-border font-body-main text-body">
+                    <option value="20">20km</option>
+                    <option value="40" selected>40km</option>
+                    <option value="80">80km</option>
+                </select>
+            </div>
+            <span id="origin" class="font-caption text-caption text-text-muted"></span>
+        </div>
+        <p class="mt-3 font-caption text-caption text-text-muted">
+            거리는 직선거리, 머무는 시간은 장소 성격으로 잡은 <b>대략</b>이에요. 실제와 다를 수 있어요.
+        </p>
+    </section>
+
+    <div id="status" class="font-body-main text-body text-text-muted text-center py-10">
+        위치를 알려주시면 근처를 찾아볼게요.
+    </div>
+
+    <div id="list" class="flex flex-col gap-4"></div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<style>
+    .nb-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 1rem 1.1rem; }
+    .nb-top { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+    .nb-region { font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent); }
+    .nb-prov { font-size: .75rem; color: var(--text-muted); }
+    .nb-mood { font-family: var(--font-serif); font-size: 1.05rem; margin: .35rem 0 .6rem; }
+    .nb-stops { display: flex; flex-direction: column; gap: .55rem; margin: .7rem 0; }
+
+    /* 한 정거장 = 시각 | 사진 | 내용 */
+    .nb-stop { display: grid; grid-template-columns: 3.1rem 68px 1fr; gap: .6rem; align-items: start; }
+    .nb-time {
+        font-variant-numeric: tabular-nums; font-size: .8rem;
+        color: var(--text-muted); padding-top: .15rem;
+    }
+    .nb-thumb {
+        width: 68px; height: 68px; border-radius: 8px; overflow: hidden;
+        background: var(--surface-alt); display: block;
+    }
+    .nb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* 사진이 없으면 빈 회색 상자 대신 자리만 남긴다 — 없는 걸 있는 척하지 않는다 */
+    .nb-thumb--empty { background: transparent; border: 1px dashed var(--border); }
+
+    .nb-body { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+    .nb-head { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+    .nb-name { font-size: .95rem; }
+    .nb-desc {
+        font-size: .78rem; line-height: 1.55; color: var(--text-muted);
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .nb-facts { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .1rem; }
+    .nb-fact { font-size: .72rem; color: var(--text-muted); }
+    .nb-fact::after { content: '·'; margin-left: .4rem; opacity: .5; }
+    .nb-fact:last-child::after { content: ''; }
+    .nb-fact--open { color: var(--sage); }
+    .nb-fact--warn { color: var(--accent); }
+    .nb-fact--closed { color: var(--error); }
+
+    .nb-move {
+        margin-left: 3.7rem; font-size: .72rem; color: var(--text-muted); opacity: .75;
+    }
+    .nb-end {
+        margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--border);
+        font-size: .82rem; color: var(--accent);
+    }
+    .nb-end--warn { color: var(--error); }
+    .nb-meta { display: flex; gap: .8rem; flex-wrap: wrap; font-size: .75rem; color: var(--text-muted); margin-top: .5rem; }
+    .nb-cta {
+        display: inline-block; margin-top: .8rem; padding: .5rem 1rem; border-radius: var(--radius-btn);
+        background: var(--accent); color: var(--on-accent); font-size: .875rem; font-weight: 600;
+    }
+    .nb-cta:hover { background: var(--accent-hover); }
+</style>
+
+<script src="/js/geo.js"></script>
+<script src="/js/nearby.js"></script>
+</body>
+</html>

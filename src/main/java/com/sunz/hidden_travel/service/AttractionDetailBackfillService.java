@@ -138,7 +138,7 @@ public class AttractionDetailBackfillService {
 
                 int take = (int) Math.min(CHUNK, (long) maxItems - (done + failed));
                 List<Long> ids = attractionRepository
-                        .findDetailBackfillCandidates(PageRequest.of(0, take));
+                        .findDetailBackfillCandidates(AttractionRepository.DETAIL_TARGET_TYPES, PageRequest.of(0, take));
                 if (ids.isEmpty()) {
                     stopReason = "남은 대상 없음 — 선적재 완료";
                     break;
@@ -146,7 +146,7 @@ public class AttractionDetailBackfillService {
 
                 // 이번 묶음에서 실제로 줄었는지 확인할 기준값.
                 // 조회가 계속 실패하면 같은 후보가 되돌아오므로 진행 없이 도는 것을 막는다.
-                long before = attractionRepository.countDetailBackfillRemaining();
+                long before = attractionRepository.countDetailBackfillRemaining(AttractionRepository.DETAIL_TARGET_TYPES);
 
                 boolean budgetOut = false;
                 for (Long id : ids) {
@@ -169,7 +169,7 @@ public class AttractionDetailBackfillService {
                     stopReason = budgetStop;
                     break;
                 }
-                if (attractionRepository.countDetailBackfillRemaining() >= before) {
+                if (attractionRepository.countDetailBackfillRemaining(AttractionRepository.DETAIL_TARGET_TYPES) >= before) {
                     // 한 묶음을 다 돌았는데 대상이 하나도 줄지 않았다 → 계속 돌아도 같은 결과다
                     stopReason = "진행이 없어 중단 — 실패 " + failed + "건. 로그를 확인하세요";
                     log.error("[Backfill] 한 묶음({}건)을 처리했는데 남은 대상이 줄지 않았습니다. 중단합니다.", ids.size());
@@ -195,7 +195,7 @@ public class AttractionDetailBackfillService {
     /** 진행률 (API 호출 없음) */
     public Map<String, Object> progress() {
         long total = attractionRepository.count();
-        long remaining = attractionRepository.countDetailBackfillRemaining();
+        long remaining = attractionRepository.countDetailBackfillRemaining(AttractionRepository.DETAIL_TARGET_TYPES);
         long withDescription = attractionRepository.countWithDescription();
         long fetched = total - remaining;
 

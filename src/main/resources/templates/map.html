@@ -6,14 +6,14 @@
 <!-- 공통 상단 네비게이션 -->
 <header th:replace="~{fragments/layout :: header}"></header>
 
-<!-- Main: 지도(좌) + 지역 패널(우) -->
-<main class="flex-1 relative bg-background overflow-hidden">
+<!-- Main: 목적지 없는 발견 지도(좌) + 지역 판단 패널(우) -->
+<main class="night-map-page flex-1 relative bg-background overflow-hidden">
     <div id="map-main" class="absolute inset-0 flex">
 
         <!-- ===== 지도 캔버스 ===== -->
         <section class="relative flex-1 min-w-0">
             <div id="map-placeholder"
-                 class="absolute inset-0 m-4 md:m-section-gap bg-surface-alt border border-border rounded-xl overflow-hidden">
+                 class="night-map-stage absolute inset-0 m-4 md:m-section-gap bg-surface-alt border border-border rounded-xl overflow-hidden">
                 <!-- 로딩 스켈레톤 (sig.json fetch 중) -->
                 <div id="map-loading" class="map-skeleton" role="status" aria-live="polite">
                     <div class="map-skeleton__dot"></div>
@@ -22,58 +22,70 @@
 
                 <!-- 시군구 SVG 지도 -->
                 <svg id="korea-map" class="korea-map" viewBox="0 0 800 1000"
-                     preserveAspectRatio="xMidYMid meet" role="img" aria-label="대한민국 시군구 지도"></svg>
+                     preserveAspectRatio="xMidYMid meet" role="img" aria-label="대한민국 시군구 지도">
+                    <defs>
+                        <!--
+                            발견 후보의 빛 번짐.
+                            옅은 블러를 두 겹 겹치면 한 겹일 때보다 '광원'처럼 보인다 —
+                            중심이 밝고 가장자리로 사그라든다.
+                            stdDeviation 은 map.js 가 --glow-blur 토큰에서 읽어 넣는다.
+                        -->
+                        <filter id="discovery-glow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur id="discovery-glow-blur" stdDeviation="7" result="b"/>
+                            <feMerge>
+                                <feMergeNode in="b"/>
+                                <feMergeNode in="b"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g id="map-base"></g>
+                    <g id="map-glow" filter="url(#discovery-glow)" aria-hidden="true"></g>
+                    <g id="map-sparks" aria-hidden="true"></g>
+                </svg>
+                <div id="map-reveal-flash" aria-hidden="true"></div>
 
                 <!-- 안내 텍스트: 좌상단 -->
-                <div class="absolute top-card-padding left-card-padding bg-surface/90 backdrop-blur-sm border border-border rounded-lg px-4 py-2 flex items-center gap-2">
+                <div class="map-discovery-hint absolute top-card-padding left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-sm border border-border rounded-lg px-4 py-2 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-sm">touch_app</span>
-                    <span class="font-caption text-caption text-text-primary">지역을 눌러보세요</span>
+                    <span class="font-caption text-caption text-text-primary">목적지를 정하지 않아도 돼요 · 지도를 눌러 발견해보세요</span>
                 </div>
 
-                <!-- ===== 오늘의 숨은 여행지 =====
-                     지도(세로로 긴 비율) 왼쪽에 생기는 여백을 채운다.
-                     지도는 랭킹이 없어 시작점이 없는데, 이 카드가 첫 진입점이 된다.
-                     지역을 고르면 map.js 가 숨긴다(지도에 집중). -->
-                <aside id="map-spotlight" th:if="${!spotlights.isEmpty()}"
+                <!-- ===== 내가 쓴 여행이 부른 곳 =====
+                     예전엔 '오늘의 숨은 여행지'(관광지 수 기준 추천)가 이 자리에 있었다.
+                     랭킹을 없앤 서비스에서 다른 랭킹을 만든 셈이라 걷어냈다.
+                     지금은 사용자가 쓴 다이어리에서 읽은 취향으로 채운다.
+                     아무것도 안 썼으면 쓰러 가는 문만 남는다. -->
+                <aside id="my-picks"
                        class="hidden xl:flex absolute left-card-padding top-24 bottom-card-padding w-[280px] flex-col transition-opacity duration-300">
-                    <div class="flex items-center gap-1.5 mb-2 shrink-0">
+                    <div class="flex items-center gap-1.5 mb-1 shrink-0">
                         <span class="material-symbols-outlined text-primary text-[18px]">explore</span>
-                        <span class="font-card-title text-card-title text-text-primary">오늘의 숨은 여행지</span>
+                        <span class="font-card-title text-card-title text-text-primary">당신의 글이 부른 코스</span>
                     </div>
+                    <p id="picks-basis" class="font-caption text-caption text-text-muted mb-2 shrink-0"></p>
+                    <div id="picks-scroll" class="flex-1 overflow-y-auto no-scrollbar pr-1">
+                        <div id="picks-list" class="flex flex-col gap-3"></div>
 
-                    <!-- 스크롤 목록: 끝에 닿으면 map.js 가 다음 지역을 이어붙인다 -->
-                    <div id="spotlight-scroll" class="flex-1 overflow-y-auto no-scrollbar pr-1">
-                        <div id="spotlight-list" class="flex flex-col gap-3">
-                            <a th:each="s : ${spotlights}" th:href="@{/region(sigCd=${s.sigCd})}"
-                               class="spotlight-card group bg-surface border-2 border-border rounded-xl overflow-hidden shadow-sm hover:border-primary hover:-translate-y-[2px] transition-all duration-300"
-                               th:attr="data-sig-cd=${s.sigCd}">
-                                <!-- 사진은 띠 형태로 낮게 — 글이 주인공이 되도록 -->
-                                <div class="relative h-[92px] bg-surface-alt overflow-hidden">
-                                    <img th:src="${s.image}" th:alt="${s.heroName}" loading="lazy"
-                                         class="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"/>
-                                    <span class="absolute bottom-1.5 left-1.5 bg-surface/90 backdrop-blur-sm border border-border rounded-full px-2 py-0.5 font-caption text-caption text-text-muted"
-                                          th:text="${s.province}">경상북도</span>
-                                </div>
-                                <div class="p-3 flex flex-col gap-1">
-                                    <div class="flex items-baseline gap-1.5 flex-wrap">
-                                        <span class="font-card-title text-card-title text-text-primary" th:text="${s.name}">영양군</span>
-                                        <span class="font-caption text-caption text-primary truncate" th:text="${s.heroName}">선바위</span>
-                                    </div>
-                                    <p class="font-caption text-caption text-text-muted leading-relaxed line-clamp-3"
-                                       th:text="${s.description}">관광지 소개</p>
-                                    <div class="flex items-center gap-2 pt-1.5 mt-0.5 border-t border-border font-caption text-caption text-text-muted">
-                                        <span>관광지 <span class="text-text-primary font-semibold" th:text="${s.attractionCount}">24</span></span>
-                                        <span th:if="${s.shopCount > 0}" class="text-sage">
-                                            · 착한가격 <span class="font-semibold" th:text="${s.shopCount}">11</span>
-                                        </span>
-                                    </div>
-                                </div>
+                        <!-- 함께 고르기 — 후보가 둘 이상일 때만 map.js 가 보여준다.
+                             방이 하는 일은 여러 후보를 놓고 의견을 모으는 것이고,
+                             그 후보가 바로 위에 있다. -->
+                        <form id="ask-friends" method="post" th:action="@{/trips/from-discovery}" class="hidden mt-3">
+                            <input type="hidden" name="title" value="우리의 숨은 여행 후보"/>
+                            <div id="ask-inputs"></div>
+                            <button type="submit"
+                                    class="w-full h-[42px] rounded-lg border border-border bg-surface-alt
+                                           flex items-center justify-center gap-1.5 hover:border-primary transition-colors">
+                                <span class="material-symbols-outlined text-primary text-[18px]">group</span>
+                                <span class="font-caption text-caption text-text-primary">같이 갈 사람에게 물어보기</span>
+                            </button>
+                        </form>
+                        <div id="picks-empty" class="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2">
+                            <p class="font-caption text-caption text-text-muted leading-relaxed">
+                                기억에 남은 여행을 한 편만 적으면, 그 결에 맞는 공식 코스를 여기에 켜 드려요.
+                            </p>
+                            <a href="/onboarding/visits"
+                               class="self-start px-3.5 py-2 rounded-input bg-primary text-on-primary font-caption text-caption font-semibold hover:bg-accent-hover transition-colors">
+                                여행 적으러 가기
                             </a>
-                        </div>
-
-                        <!-- 무한 스크롤 감지점 -->
-                        <div id="spotlight-sentinel" class="py-3 flex items-center justify-center">
-                            <span id="spotlight-status" class="font-caption text-caption text-text-muted">더 불러오는 중…</span>
                         </div>
                     </div>
                 </aside>
@@ -96,18 +108,54 @@
                     </div>
                 </div>
 
-                <!-- 우하단 액션: AI 추천(주요) + 무작위(보조) -->
+                <!--
+                    온보딩을 마친 사용자에게만 뜨는 띠.
+                    후보를 '몇 곳'으로만 말하고 순위는 말하지 않는다 — 지도에서도 모두 같은 색이다.
+                -->
+                <div id="discovery-banner"
+                     class="hidden absolute top-card-padding left-1/2 -translate-x-1/2 max-w-[420px]
+                            bg-surface border border-border rounded-lg shadow-sm px-4 py-3
+                            flex items-start gap-3">
+                    <span class="material-symbols-outlined text-primary text-[20px] mt-[2px]">explore</span>
+                    <div class="flex-1">
+                        <p id="discovery-headline" class="font-body-main text-body-main text-text-primary">
+                            내 여행 결과와 가까운 코스
+                        </p>
+                        <p id="discovery-sub" class="font-caption text-caption text-text-muted mt-[2px]"></p>
+                    </div>
+                    <button type="button" id="discovery-toggle"
+                            class="font-caption text-caption text-primary hover:underline whitespace-nowrap">
+                        숨기기
+                    </button>
+                </div>
+
+                <!-- 온보딩 전 사용자에게: 발견을 시작하는 입구.
+                     발견 패널(xl 이상)이 같은 말을 버튼까지 달아 하고 있으므로 그때는 숨긴다 —
+                     둘 다 띄우면 왼쪽 위에서 서로를 덮는다. -->
+                <a th:href="@{/onboarding/visits}" id="discovery-cta"
+                   class="hidden xl:!hidden absolute top-card-padding left-1/2 -translate-x-1/2 max-w-[420px]
+                          bg-surface border border-border rounded-lg shadow-sm px-4 py-3
+                          flex items-center gap-3 hover:border-primary transition-colors">
+                    <span class="material-symbols-outlined text-primary text-[20px]">explore</span>
+                    <span class="font-body-main text-body-main text-text-primary">
+                        기억에 남은 여행을 한 편만 적으면, 그 결에 맞는 낯선 지역을 찾아드려요
+                    </span>
+                </a>
+
+                <!-- 우하단 액션: 지도 발견(주요) + 조건 좁히기(보조) -->
                 <div class="absolute bottom-card-padding right-card-padding flex items-center gap-2">
                     <button type="button" id="map-shuffle"
                             class="bg-surface border border-border rounded-lg px-4 h-[44px] flex items-center gap-2 hover:bg-surface-alt transition-colors font-body-main text-body-main text-text-primary shadow-sm">
                         <span class="material-symbols-outlined text-primary text-[20px]">shuffle</span>
-                        무작위
+                        무작위로 발견
                     </button>
-                    <button type="button" id="ai-recommend-btn"
-                            class="bg-primary-container hover:bg-accent-hover text-on-primary rounded-lg px-5 h-[44px] flex items-center gap-2 transition-all duration-300 hover:-translate-y-[2px] font-semibold shadow-sm">
-                        <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
-                        AI에게 추천받기
-                    </button>
+                    <!-- 지도는 '언젠가 갈 곳', 근처는 '지금 나갈까' — 두 번째 축이 여기서 갈린다.
+                         (전에 있던 '맞춤 여행안 만들기'는 조건 폼 기획의 잔재라 걷어냈다) -->
+                    <a th:href="@{/nearby}"
+                       class="bg-primary-container hover:bg-accent-hover text-on-primary rounded-lg px-5 h-[44px] flex items-center gap-2 transition-all duration-300 hover:-translate-y-[2px] font-semibold shadow-sm">
+                        <span class="material-symbols-outlined text-[20px]">near_me</span>
+                        지금 나갈 만한 곳
+                    </a>
                 </div>
             </div>
         </section>
@@ -128,13 +176,17 @@
 
             <!-- Scrollable body -->
             <div id="panel-body" class="flex-1 overflow-y-auto p-card-padding bg-surface stagger-fade-in">
-                <!-- AI Summary -->
-                <div class="bg-accent-soft p-6 rounded border border-border mb-section-gap">
+                <!-- Region rationale: AI가 아니라 구조화된 지역 정보가 먼저 보인다 -->
+                <div class="region-evidence-card bg-accent-soft p-6 rounded border border-border mb-section-gap">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="material-symbols-outlined text-primary text-sm">psychology</span>
-                        <span class="font-section-title text-card-title text-primary">AI 요약</span>
+                        <span class="material-symbols-outlined text-primary text-sm">fact_check</span>
+                        <span class="font-section-title text-card-title text-primary">이 지역을 판단할 근거</span>
                     </div>
                     <p id="panel-ai" class="font-body-main text-body-main text-text-primary leading-relaxed"></p>
+                    <div class="region-data-status mt-4 pt-3 border-t border-border flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sage text-[16px]">verified</span>
+                        <span class="font-caption text-caption text-text-muted">TourAPI·지역 데이터 기반 · 일부 운영시간 미검증</span>
+                    </div>
                 </div>
                 <!-- Specialties -->
                 <div id="panel-specialties-wrap" class="mb-section-gap">
@@ -143,7 +195,7 @@
                 </div>
                 <!-- Good price shops -->
                 <div id="panel-shops-wrap" class="mb-section-gap">
-                    <h3 class="font-section-title text-card-title text-primary mb-4">착한가격업소 추천</h3>
+                    <h3 class="font-section-title text-card-title text-primary mb-4">가격 근거 <span class="font-caption text-caption text-text-muted">(있는 경우)</span></h3>
                     <div id="panel-shops" class="flex flex-col gap-4"></div>
                     <p class="text-right font-body-main text-xs text-text-muted mt-2">출처: 행정안전부 착한가격업소</p>
                 </div>
@@ -161,7 +213,7 @@
                 <a id="panel-day" href="#"
                    class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
                     <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
-                    이 지역에서 하루 보내기
+                    <span id="panel-day-label">이 지역에서 하루 보내기</span>
                 </a>
                 <!-- 자동 코스를 만들 데이터가 없는 지역에서는 버튼 대신 사실을 보여준다 -->
                 <p id="panel-day-note" class="hidden font-caption text-caption text-text-muted text-center">
@@ -234,7 +286,11 @@
 </div>
 
 <!-- 공통 푸터 -->
-<footer th:replace="~{fragments/layout :: footer}"></footer>
+<!-- 지도 화면에는 푸터를 두지 않는다.
+     한국은 세로로 긴 나라라 이 지도는 <b>높이가 곧 크기</b>다 — 폭은 아무리 넓어도
+     그리는 크기를 못 늘린다. 실측: 1440×900 에서 푸터 68px 때문에 지도가 537×578 로
+     줄어 가로의 39% 만 쓰고 있었다. 푸터를 걷으면 그만큼 그대로 지도가 커진다.
+     탐색 화면은 원래 전면(full-bleed)이 맞기도 하다. -->
 
 <!-- 지도 라이브러리(필요 모듈만 자체 호스팅) + 초기화 -->
 <script th:src="@{/js/geo.js}"></script>

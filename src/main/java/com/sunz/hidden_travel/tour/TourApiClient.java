@@ -89,6 +89,31 @@ public class TourApiClient {
     }
 
     /**
+     * 축제·공연·행사 목록 (contentTypeId=15 전용 오퍼레이션).
+     *
+     * areaBasedList2 로도 축제를 받을 수 있지만 행사 기간이 응답에 없다.
+     * searchFestival2 는 eventstartdate/eventenddate 를 함께 주므로
+     * "지금/앞으로 열리는 축제"를 구분할 수 있다.
+     *
+     * <b>areaCode 를 넘기지 않는다.</b> 실측 결과 이 오퍼레이션은 지역 필터가 동작하지 않는다
+     * (응답의 areacode 필드가 비어 있고, areaCode 를 주면 결과가 0건이 된다).
+     * 대신 전국을 한 번에 받고 mapx/mapy 로 시군구를 판정한다 — 호출 수도 훨씬 적다.
+     *
+     * @param eventStartDate yyyyMMdd — 이 날짜 이후에 시작하거나 진행 중인 행사
+     */
+    public TourPage searchFestival(String eventStartDate, int pageNo, int numOfRows) {
+        return call(b -> b.path("/searchFestival2")
+                .queryParam("serviceKey", serviceKey)
+                .queryParam("MobileOS", "ETC")
+                .queryParam("MobileApp", "Sumeun")
+                .queryParam("_type", "json")
+                .queryParam("numOfRows", numOfRows)
+                .queryParam("pageNo", pageNo)
+                .queryParam("eventStartDate", eventStartDate)
+                .build());
+    }
+
+    /**
      * 공통 상세 — overview(상세설명), homepage 등. 콘텐츠 1건당 1회.
      * 결과가 없으면 null.
      */

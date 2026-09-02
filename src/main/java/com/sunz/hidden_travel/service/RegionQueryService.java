@@ -220,7 +220,8 @@ public class RegionQueryService {
                             matched != null && matched.getImage() != null ? matched.getImage() : p.getImage(),
                             matched != null ? matched.getAddr() : null,
                             matched != null ? matched.getLat() : null,
-                            matched != null ? matched.getLng() : null));
+                            matched != null ? matched.getLng() : null,
+                            matched != null ? matched.getDescription() : null));
                 }
             });
         }

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('숨은여행 · 함께 고르기')}"></head>
+<body class="bg-background text-text-primary min-h-screen font-body-main antialiased">
+<header class="trip-room-header">
+    <a href="/map" class="trip-room-brand"><span th:replace="~{fragments/brand :: logoMark(28)}"></span><span>숨은여행</span></a>
+    <div class="trip-room-title"><span class="room-status" th:text="${view.room.status == 'CONFIRMED'} ? '여행 확정' : '의견 모으는 중'">의견 모으는 중</span><strong th:text="${view.room.title}">여행방</strong></div>
+    <button type="button" class="icon-action" data-copy-link title="공유 링크 복사"><span class="material-symbols-outlined">share</span></button>
+</header>
+
+<main class="shared-room-layout">
+    <section class="shared-map-column">
+        <div class="shared-map-card">
+            <div class="map-skeleton" id="trip-map-loading"><span>지도를 불러오는 중...</span></div>
+            <svg class="korea-map trip-korea-map" data-trip-map
+                 th:attr="data-candidates=${#strings.listJoin(view.candidates.![candidate.sigCd], ',')}"
+                 viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid meet" role="img" aria-label="여행 후보 지도"></svg>
+        </div>
+        <div class="room-context" th:if="${view.hasContext()}">
+            <span th:text="${view.request.departure + ' 출발'}">서울 출발</span><span th:text="${view.request.duration}">당일</span>
+            <span th:text="${view.request.transport}">자동차</span><span th:text="${view.request.people + '명'}">4명</span>
+        </div>
+        <div class="participant-panel">
+            <div><strong th:text="${view.participants.size()}">0</strong><span>명 참여</span></div>
+            <div class="avatar-stack"><span th:each="name : ${view.participants}" th:text="${#strings.substring(name,0,1)}" th:title="${name}">민</span><span th:if="${view.participants.isEmpty()}">?</span></div>
+            <a th:if="${isHost}" th:href="@{/trips/{code}/summary(code=${view.room.shareCode})}">의견 요약 보기</a>
+        </div>
+    </section>
+
+    <section class="shared-candidate-column">
+        <div class="shared-intro">
+            <span class="font-caption text-caption text-primary font-semibold">가입 없이 참여할 수 있어요</span>
+            <h1>어떤 하루가 가장 끌리나요?</h1>
+            <p>지역명이 아니라 실제 동선을 보고 가장 끌리는 하루를 골라주세요.</p>
+            <label class="nickname-field"><span>내 이름</span><input id="room-nickname" maxlength="24" placeholder="예: 민지" required></label>
+        </div>
+
+        <article th:each="item : ${view.candidates}" class="room-candidate" th:id="'candidate-' + ${item.candidate.courseKey}" th:attr="data-candidate-card=${item.candidate.sigCd}">
+            <div class="room-candidate-main">
+                <div>
+                    <span class="direction-badge" th:if="${item.candidate.directionLabel != null}" th:text="${item.candidate.directionLabel}">추천 방향</span>
+                    <span class="candidate-location" th:text="${item.candidate.province + ' · ' + item.candidate.regionName}">지역</span>
+                    <h2 th:text="${item.candidate.narrativeTitle}">하루 제목</h2>
+                </div>
+                <a th:href="${item.candidate.detailUrl}" title="코스 상세"><span class="material-symbols-outlined">arrow_outward</span></a>
+            </div>
+            <ol class="course-route-preview course-route-preview--room" aria-label="코스 경유지">
+                <li th:each="stop, stat : ${item.candidate.dayPlan.stops}" th:if="${stat.index < 4}"><span th:text="${stop.slot}">오전</span><strong th:text="${stop.name}">장소</strong></li>
+            </ol>
+            <p class="candidate-reason" th:text="${item.candidate.reason}">추천 이유</p>
+            <div class="candidate-tags"><span th:each="tag : ${item.candidate.tags}" th:text="${tag}">태그</span></div>
+
+            <form th:if="${view.room.status != 'CONFIRMED'}" class="reaction-form" th:action="@{/trips/{code}/reactions(code=${view.room.shareCode})}" method="post">
+                <input type="hidden" name="nickname" class="reaction-nickname">
+                <input type="hidden" name="courseKey" th:value="${item.candidate.courseKey}">
+                <div class="reaction-controls">
+                    <label><input type="radio" name="reaction" value="LIKE" required><span><span class="material-symbols-outlined">favorite</span>좋아요 <b th:text="${item.likeCount}">0</b></span></label>
+                    <label><input type="radio" name="reaction" value="OKAY"><span><span class="material-symbols-outlined">sentiment_satisfied</span>괜찮아요 <b th:text="${item.okayCount}">0</b></span></label>
+                    <label><input type="radio" name="reaction" value="PASS"><span><span class="material-symbols-outlined">swap_horiz</span>다른 곳 <b th:text="${item.passCount}">0</b></span></label>
+                </div>
+                <div class="reaction-comment"><input name="comment" maxlength="300" placeholder="이 후보에 한마디 (선택)"><button type="submit">의견 보내기</button></div>
+            </form>
+            <div th:if="${view.room.status == 'CONFIRMED' and view.selectedCandidate != null and view.selectedCandidate.courseKey == item.candidate.courseKey}" class="room-confirmed-note">
+                <span class="material-symbols-outlined">check_circle</span><strong>이 코스로 확정했어요</strong>
+                <a th:href="@{/trips/{code}/summary(code=${view.room.shareCode})}">확정 일정 보기</a>
+            </div>
+
+            <div class="reaction-notes" th:if="${!item.reactions.isEmpty()}">
+                <p th:each="reaction : ${item.reactions}" th:if="${reaction.comment != null and !reaction.comment.isBlank()}"><strong th:text="${reaction.nickname}">민지</strong><span th:text="${reaction.comment}">의견</span></p>
+            </div>
+        </article>
+    </section>
+</main>
+
+<div class="mobile-room-action" th:if="${view.room.status != 'CONFIRMED'}"><button type="button" data-scroll-next><span class="material-symbols-outlined">how_to_vote</span>후보에 의견 남기기</button></div>
+<div class="mobile-room-action" th:if="${view.room.status == 'CONFIRMED'}"><a th:href="@{/trips/{code}/summary(code=${view.room.shareCode})}"><span class="material-symbols-outlined">check_circle</span>확정 코스 보기</a></div>
+<script th:src="@{/js/d3-array.min.js}"></script><script th:src="@{/js/d3-geo.min.js}"></script>
+<script th:src="@{/js/topojson-client.min.js}"></script><script th:src="@{/js/trip-map.js}"></script>
+<script th:src="@{/js/trip-ui.js}"></script>
+</body>
+</html>

@@ -78,12 +78,12 @@
             </div>
         </div>
 
-        <!-- Action Buttons — 다녀온 뒤 후기를 남기는 것이 다음 단계 -->
+        <!-- 다녀온 뒤 다이어리를 쓰는 것이 다음 단계 — 그 글이 다음 추천을 바꾼다 -->
         <div class="w-full flex flex-col sm:flex-row gap-4 animate-fade-up" style="animation-delay: 0.4s;">
-            <a th:href="@{/review/new(courseId=${course.id})}"
+            <a th:href="@{/onboarding/visits(courseId=${course.id})}"
                class="flex-1 h-[44px] bg-primary-container text-on-primary font-card-title text-card-title flex items-center justify-center gap-2 hover:bg-accent-hover hover:-translate-y-[2px] transition-all duration-300">
                 <span class="material-symbols-outlined text-[20px]">edit_note</span>
-                후기 쓰기
+                다녀왔어요
             </a>
             <a th:href="@{/my/courses}" class="flex-1 h-[44px] bg-surface border border-border text-text-primary font-card-title text-card-title flex items-center justify-center hover:bg-surface-alt transition-colors duration-300">
                 내 코스 보기

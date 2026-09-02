@@ -84,10 +84,29 @@
                  추정값과 실측값을 섞지 않는 것이 이 블록의 원칙이다. -->
             <div th:if="${dayPlan != null and dayPlan.available}"
                  class="mb-4 bg-accent-soft border border-border rounded-lg p-5">
+                <!-- 표지 — 사진 · 지역 · 이 하루가 어떤 결인지 한 줄.
+                     표를 먼저 보여주면 "갈 만한가"를 따지게 되고, 사진을 먼저 보여주면
+                     "가고 싶은가"를 먼저 느낀다. 판단 근거는 그 아래에 그대로 둔다. -->
+                <div th:if="${dayPlan.coverImage != null}"
+                     class="relative -mx-5 -mt-5 mb-4 h-[168px] overflow-hidden">
+                    <img th:src="${dayPlan.coverImage}" th:alt="${dayPlan.regionName}" loading="lazy"
+                         class="w-full h-full object-cover"/>
+                    <!-- 글이 사진 위에서 읽히도록 아래쪽을 카드 배경색으로 덮는다 -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-accent-soft via-accent-soft/70 to-transparent"></div>
+                    <div class="absolute bottom-3 left-5 right-5 flex flex-col gap-0.5">
+                        <span class="font-caption text-caption text-text-muted" th:text="${dayPlan.province}">경상북도</span>
+                        <span class="font-display-title text-[1.5rem] text-primary" th:text="${dayPlan.regionName}">영양군</span>
+                        <p class="font-body-main text-caption text-text-primary leading-relaxed"
+                           th:text="${dayPlan.title}">물가를 걷다가 앉아서 쉬는 하루</p>
+                    </div>
+                </div>
+
                 <div class="flex items-start justify-between gap-3 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary text-[20px]">wb_twilight</span>
-                        <h3 class="font-section-title text-card-title text-primary">이 지역에서 보내는 하루</h3>
+                        <!-- 표지가 없는 지역(사진 미적재)에서는 여기가 제목 역할을 한다 -->
+                        <h3 class="font-section-title text-card-title text-primary"
+                            th:text="${dayPlan.coverImage != null} ? '이 하루를 고른 이유' : '이 지역에서 보내는 하루'">이 지역에서 보내는 하루</h3>
                     </div>
                     <!-- 자동 코스는 결론이 아니라 출발점 — 마음에 안 들면 다시 뽑는다 -->
                     <a th:href="@{/course(sigCd=${data.sigCd}, auto=true, variant=${dayPlan.variant + 1})}"
@@ -200,6 +219,9 @@
                                 <span class="bg-surface-alt text-text-muted font-caption text-caption px-2 py-0.5 rounded text-[11px]" th:text="${it.type}">유형</span>
                                 <span th:if="${it.sage}" class="badge-sage">착한가격업소</span>
                             </div>
+                            <p th:if="${it.description != null}"
+                               class="mt-1 font-caption text-caption text-text-muted leading-relaxed line-clamp-2"
+                               th:text="${it.description}">어떤 곳인지 한 줄</p>
                             <button th:if="${it.attractionId != null or it.contentId != null}" type="button"
                                     class="detail-btn mt-1 inline-flex items-center gap-1 font-caption text-caption text-primary hover:underline">
                                 <span class="material-symbols-outlined text-[16px]">expand_more</span>

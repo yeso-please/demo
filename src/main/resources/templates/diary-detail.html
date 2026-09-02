@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('여행 한 편 — 숨은여행')}"></head>
+<body class="bg-background text-text-primary font-body-main antialiased min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="flex-1 w-full max-w-3xl mx-auto px-4 py-8">
+
+    <a th:href="@{/reviews}" class="inline-flex items-center gap-1.5 font-caption text-caption text-text-muted hover:text-primary transition-colors mb-6">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        다른 사람의 여행
+    </a>
+
+    <!-- 머리말 -->
+    <header class="flex flex-col gap-2 mb-7">
+        <div class="flex items-center gap-2 flex-wrap">
+            <a th:href="@{/region(sigCd=${diary.sigCd})}"
+               class="font-display-title text-display-title text-primary hover:underline"
+               th:text="${diary.regionLabel}">경상북도 안동시</a>
+            <span th:if="${diary.whenText != null and !diary.whenText.isBlank()}"
+                  class="font-body-main text-body text-text-muted" th:text="${diary.whenText}">작년 가을</span>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap font-caption text-caption text-text-muted">
+            <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">person</span>
+                <span th:text="${diary.nickname}">여행자</span>
+            </span>
+            <span class="w-px h-3 bg-border"></span>
+            <span th:text="${diary.createdAt}">2026.07.30</span>
+            <span th:if="${!diary.shared}" class="w-px h-3 bg-border"></span>
+            <span th:if="${!diary.shared}" class="text-text-muted">나만 보기</span>
+        </div>
+    </header>
+
+    <!-- 사진 -->
+    <section th:if="${!diary.photoPaths.isEmpty()}" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
+        <img th:each="p : ${diary.photoPaths}" th:src="${p}" alt="여행 사진" loading="lazy"
+             class="w-full rounded-lg border border-border object-cover"/>
+    </section>
+
+    <!-- 본문 — 다이어리의 글은 명조체로 읽는다(쓸 때와 같은 얼굴) -->
+    <article class="bg-surface border border-border rounded-card p-card-padding mb-6">
+        <p class="whitespace-pre-wrap leading-[2.05] text-[1.06rem]"
+           style="font-family: var(--font-serif)" th:text="${diary.text}">여행 글</p>
+    </article>
+
+    <!-- 읽힌 것 · 만족도 -->
+    <section class="flex items-center gap-2.5 flex-wrap mb-6">
+        <span th:if="${diary.satisfactionLabel != null}"
+              class="px-3 py-1 rounded-full bg-accent-soft text-accent-hover font-caption text-caption font-semibold"
+              th:text="${diary.satisfactionLabel}">또 가고 싶다</span>
+        <span th:each="t : ${diary.tags}"
+              class="px-2.5 py-1 rounded-full border border-border text-text-muted font-caption text-caption"
+              th:text="${t}">골목</span>
+    </section>
+
+    <!-- 코스로 다녀온 편이면 그 코스를 보여준다 — 이 글이 추천의 결과라는 증거다 -->
+    <section th:if="${diary.fromCourse()}"
+             class="bg-sage-bg border border-sage-border rounded-card p-card-padding mb-6 flex flex-col gap-2">
+        <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sage text-[18px]">route</span>
+            <span class="font-caption text-caption text-sage font-semibold">이 코스대로 다녀왔어요</span>
+        </div>
+        <span class="font-card-title text-card-title text-text-primary" th:text="${diary.courseTitle}">코스명</span>
+        <div th:if="${!diary.courseStops.isEmpty()}" class="flex gap-1.5 flex-wrap">
+            <span th:each="s : ${diary.courseStops}"
+                  class="font-caption text-caption text-text-muted bg-surface border border-border rounded px-2 py-0.5"
+                  th:text="${s}">경유지</span>
+        </div>
+    </section>
+
+    <div class="flex gap-3 flex-wrap">
+        <a th:href="@{/region(sigCd=${diary.sigCd})}" class="btn-primary">이 지역 보러 가기</a>
+        <a th:if="${diary.mine}" th:href="@{/onboarding/visits}" class="btn-secondary">내 다이어리 고치기</a>
+    </div>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

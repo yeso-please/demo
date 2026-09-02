@@ -89,10 +89,9 @@ public class ReviewController {
         return "review-detail";
     }
 
-    /** 후기 피드 — 다른 사람들의 여행 후기 둘러보기 */
-    @GetMapping("/reviews")
-    public String feed(Model model) {
-        model.addAttribute("reviews", reviewService.feed());
-        return "review-feed";
-    }
+    /*
+     * 피드(/reviews)는 DiaryController 로 옮겼다.
+     * 후기와 다이어리를 합친 뒤로 읽을 것은 '다이어리 한 편'이지 '코스에 대한 후기'가 아니다.
+     * 옛 후기도 다이어리로 옮겨져 있으므로 피드에서 빠지지 않는다.
+     */
 }

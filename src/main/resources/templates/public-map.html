@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('여행 지도 — 숨은여행')}"></head>
+<body class="bg-background text-text-primary min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8">
+
+    <!-- 머리말 — 사람이 먼저다. 지도는 그 사람을 설명하는 그림이다 -->
+    <section class="mb-6 text-center flex flex-col items-center gap-2">
+        <h1 class="font-display-title text-display-title text-primary">
+            <span th:text="${map.nickname}">여행자</span>님의 여행 지도
+        </h1>
+        <p class="font-body-main text-body text-text-muted">
+            250곳 중 <b class="text-primary" th:text="${map.litCount}">0</b>곳을 밝혔어요.
+        </p>
+        <!-- 이 사람의 여행을 관통하는 결 -->
+        <div th:if="${!map.topTags.isEmpty()}" class="flex gap-1.5 flex-wrap justify-center mt-1">
+            <span th:each="t : ${map.topTags}"
+                  class="font-caption text-caption px-2.5 py-1 rounded-full bg-accent-soft text-accent-hover"
+                  th:text="${t}">바다</span>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+
+        <!-- 지도 -->
+        <section class="bg-surface border border-border rounded-card overflow-hidden">
+            <div class="relative">
+                <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-surface z-10">
+                    <span class="font-caption text-caption text-text-muted">지도를 불러오는 중…</span>
+                </div>
+                <svg id="pub-map" class="w-full h-auto" viewBox="0 0 800 1000"
+                     preserveAspectRatio="xMidYMid meet" role="img"
+                     th:attr="aria-label=${map.nickname} + '님이 다녀온 지역이 켜진 전국 지도'">
+                    <defs>
+                        <!-- /my/discoveries 와 같은 빛 처리 — 여기서 켜진 불도 '다녀온 곳'이다 -->
+                        <filter id="lit-glow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="7" result="b"/>
+                            <feMerge><feMergeNode in="b"/><feMergeNode in="b"/></feMerge>
+                        </filter>
+                    </defs>
+                    <g id="pub-base"></g>
+                    <g id="pub-glow" filter="url(#lit-glow)" aria-hidden="true"></g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- 다녀온 곳 목록 -->
+        <section class="flex flex-col gap-4">
+            <div class="bg-surface border border-border rounded-card p-card-padding">
+                <h2 class="font-body-main text-body font-semibold mb-3">다녀온 곳</h2>
+                <ul class="flex flex-col gap-2">
+                    <li th:each="e : ${map.entries}">
+                        <a th:href="@{'/diary/' + ${e.diaryId}}"
+                           class="flex flex-col gap-0.5 p-2.5 rounded-input bg-surface-alt border border-transparent hover:border-primary transition-colors">
+                            <span class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-body-main text-body text-primary" th:text="${e.regionLabel}">경상남도 통영시</span>
+                                <span th:if="${e.whenText != null and !e.whenText.isBlank()}"
+                                      class="font-caption text-caption text-text-muted" th:text="${e.whenText}">작년 가을</span>
+                            </span>
+                            <span class="font-caption text-caption text-text-muted line-clamp-2" th:text="${e.excerpt}">여행 글</span>
+                        </a>
+                    </li>
+                </ul>
+                <p th:if="${map.isEmpty()}" class="font-caption text-caption text-text-muted">
+                    아직 공개한 여행이 없어요.
+                </p>
+            </div>
+
+            <!-- 보는 사람에게 남기는 다음 걸음 -->
+            <a th:if="${!mine}" th:href="@{/onboarding/visits}"
+               class="w-full py-3 rounded-input bg-primary text-on-primary font-body-main text-body font-semibold
+                      text-center hover:bg-accent-hover transition-colors">
+                나도 내 지도 만들기
+            </a>
+            <a th:if="${mine}" th:href="@{/my/discoveries}"
+               class="w-full py-3 rounded-input bg-surface border border-border font-body-main text-body
+                      text-center hover:border-primary transition-colors">
+                내 지도로 돌아가기
+            </a>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<style>
+    .sig-path { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: .85px;
+                vector-effect: non-scaling-stroke; }
+    /* 켜진 곳만 누를 수 있다 — 안 다녀온 지역은 여기서 할 일이 없다 */
+    .sig-path.lit { fill: var(--accent); stroke: var(--accent-hover); cursor: pointer; }
+    .sig-path.lit:hover { fill: var(--accent-hover); }
+    #pub-glow path { fill: var(--glow-color); opacity: var(--glow-opacity); stroke: none; }
+</style>
+
+<script th:inline="javascript">
+    /*global d3, topojson*/
+    // 켜진 지역: [{sigCd, name, diaryId}, ...]
+    window.PUBLIC_LIT = /*[[${map.lit}]]*/ [];
+</script>
+<script src="/js/d3-array.min.js"></script>
+<script src="/js/d3-geo.min.js"></script>
+<script src="/js/topojson-client.min.js"></script>
+<script src="/js/public-map.js"></script>
+</body>
+</html>

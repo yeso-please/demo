@@ -56,7 +56,10 @@ public class AuthController {
             return "signup";
         }
         autoLogin(user, request, response);
-        return "redirect:/onboarding";
+        // 가입 직후 첫 화면은 다이어리다. 12문항 MBTI 는 취향을 묻기만 하고
+        // 아무것도 보여주지 못한 채 화면 하나를 더 쓴다 — 첫 가치까지의 거리를 늘린다.
+        // MBTI 검사는 프로필에서 선택적으로 남겨 둔다.
+        return "redirect:/onboarding/visits";
     }
 
     /** 가입 직후 자동 로그인 — 세션에 인증 정보를 심는다 */

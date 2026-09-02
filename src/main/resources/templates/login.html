@@ -55,6 +55,16 @@
                 <span>Google로 시작하기</span>
             </button>
         </div>
+        <!-- 로그인 없이 들어오는 문.
+             다이어리는 로그인을 요구하지 않는다(세션에 담고, 가입하면 옮긴다).
+             첫 가치 경험을 로그인 뒤로 미루면 그 자리에서 그냥 나간다. -->
+        <a th:href="@{/onboarding/visits}"
+           class="mt-6 w-full h-[48px] rounded-lg border border-border bg-surface-alt
+                  flex items-center justify-center gap-2 hover:border-primary transition-colors">
+            <span class="material-symbols-outlined text-primary text-[20px]">edit_note</span>
+            <span class="font-body-main text-body-main text-text-primary">가입 없이 여행 한 편 적어보기</span>
+        </a>
+
         <!-- Footer Links -->
         <div class="mt-8 flex justify-center gap-4 font-caption text-caption text-text-muted">
             <a class="hover:text-primary transition-colors" th:href="@{/signup}">회원가입</a>

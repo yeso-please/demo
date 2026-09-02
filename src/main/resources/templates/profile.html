@@ -44,8 +44,19 @@
         </div>
     </section>
 
-    <!-- 2) 활동 -->
-    <section class="grid grid-cols-2 gap-4 mb-6">
+    <!-- 2) 활동 — 이 서비스의 활동은 '쓴 편 수'와 '켠 지역 수'가 먼저다.
+         코스·후기는 그 결과로 쌓인다. -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <a th:href="@{/onboarding/visits}"
+           class="bg-surface border-2 border-border rounded-xl p-card-padding shadow-sm hover:border-primary transition-colors">
+            <span class="font-caption text-caption text-text-muted block mb-1">내가 쓴 여행</span>
+            <span class="font-display-title text-[28px] text-primary" th:text="${visitCount}">0</span>
+        </a>
+        <a th:href="@{/my/discoveries}"
+           class="bg-surface border-2 border-border rounded-xl p-card-padding shadow-sm hover:border-primary transition-colors">
+            <span class="font-caption text-caption text-text-muted block mb-1">불 켠 지역</span>
+            <span class="font-display-title text-[28px] text-primary" th:text="${visitCount}">0</span>
+        </a>
         <a th:href="@{/my/courses}"
            class="bg-surface border-2 border-border rounded-xl p-card-padding shadow-sm hover:border-primary transition-colors">
             <span class="font-caption text-caption text-text-muted block mb-1">내가 만든 코스</span>

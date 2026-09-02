@@ -49,7 +49,7 @@
             zIndex: 4,
             content:
                 '<div style="display:flex;align-items:center;justify-content:center;' +
-                'width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;' +
+                'width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--on-accent);' +
                 'font-weight:700;font-size:13px;border:2px solid #fff;' +
                 'box-shadow:0 1px 4px rgba(0,0,0,.3)">' + index + '</div>',
         });
@@ -127,7 +127,7 @@
             'border-radius:50%;background:#D08A5D;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)';
 
         const arrow = document.createElement('div');
-        arrow.style.cssText = 'color:#fff;font-size:12px;line-height:1';
+        arrow.style.cssText = 'color:var(--on-accent);font-size:12px;line-height:1';
         arrow.textContent = '➤';
         badge.appendChild(arrow);
 

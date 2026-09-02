@@ -44,15 +44,13 @@
                 </span>
             </div>
 
-            <!-- 액션: 후기 쓰기 / 후기 보기 -->
+            <!-- 액션: 다녀왔어요 → 다이어리.
+                 '후기 쓰기'가 아니라 '다녀왔어요'다. 후기는 서비스에 남기는 평가지만,
+                 다이어리는 내 여행 기록이고 다음 추천을 바꾼다 — 쓸 이유가 다르다. -->
             <div class="flex flex-col sm:flex-row gap-2">
-                <a th:if="${!c.hasReview()}" th:href="@{/review/new(courseId=${c.courseId})}" class="btn-primary flex-1">
+                <a th:href="@{/onboarding/visits(courseId=${c.courseId})}" class="btn-primary flex-1">
                     <span class="material-symbols-outlined text-[20px]">edit_note</span>
-                    후기 쓰기
-                </a>
-                <a th:if="${c.hasReview()}" th:href="@{'/review/' + ${c.reviewId}}" class="btn-primary flex-1">
-                    <span class="material-symbols-outlined text-[20px]">photo_library</span>
-                    후기 보기
+                    다녀왔어요
                 </a>
                 <a th:href="@{/region(sigCd=${c.sigCd})}" class="btn-secondary flex-1">지역 다시 보기</a>
             </div>

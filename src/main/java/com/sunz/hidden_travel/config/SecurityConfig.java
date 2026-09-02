@@ -49,8 +49,15 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/geo/**", "/images/**", "/uploads/**",
                                  "/favicon.ico", "/error").permitAll()
                 // --- 로그인 없이 볼 수 있는 화면 ---
-                .requestMatchers("/", "/signup", "/onboarding", "/map",
+                .requestMatchers("/", "/signup", "/onboarding", "/onboarding/**", "/map", "/trip/**", "/trips/**",
                                  "/region", "/region/**", "/reviews", "/chat").permitAll()
+                // 다이어리 상세는 공개 편이면 누구나 읽는다(비공개 편은 서비스가 걸러낸다)
+                .requestMatchers(HttpMethod.GET, "/diary/*").permitAll()
+                // 공유받은 사람은 대개 비로그인이다 — 로그인 벽을 세우면 공유가 성립하지 않는다
+                .requestMatchers(HttpMethod.GET, "/u/*").permitAll()
+                // 내 발견 지도는 세션에 담긴 방문 이력만 보여준다 — 온보딩이 로그인을 요구하지 않으므로
+                // 이 화면도 열려 있어야 한다. 아래 "/my/**" 인증 규칙보다 먼저 와야 적용된다.
+                .requestMatchers("/my/discoveries", "/nearby").permitAll()
                 .requestMatchers(HttpMethod.GET, "/review/*").permitAll()   // 후기 상세(공유 링크)
                 // 코스 만들기는 로그인 없이 둘러보고 담아볼 수 있다(저장할 때만 로그인).
                 // 담은 내용은 course.js 가 sessionStorage 에 보관했다가 로그인 후 복원한다.

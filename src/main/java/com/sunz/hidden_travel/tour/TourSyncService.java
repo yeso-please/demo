@@ -35,9 +35,33 @@ public class TourSyncService {
     private static final Logger log = LoggerFactory.getLogger(TourSyncService.class);
 
     private static final int CT_ATTRACTION = 12;
-    private static final int CT_FOOD = 39;
+    private static final int CT_CULTURE = 14;      // 문화시설 — 박물관·미술관·전시관
+    private static final int CT_FESTIVAL = 15;     // 축제공연행사 — searchFestival 로 따로 받는다
     private static final int CT_COURSE = 25;
-    private static final int[] CONTENT_TYPES = {CT_ATTRACTION, CT_FOOD, CT_COURSE};
+    private static final int CT_LEISURE = 28;      // 레포츠
+    private static final int CT_LODGING = 32;      // 숙박
+    private static final int CT_SHOPPING = 38;     // 쇼핑
+    private static final int CT_FOOD = 39;
+
+    /**
+     * areaBasedList 로 받는 유형. <b>순서가 곧 우선순위</b>다.
+     * 하루 호출 한도(1,000회)가 중간에 소진돼도 앞쪽 유형이 최대한 채워진 상태로 끝난다.
+     *
+     * 축제(15)는 행사 기간이 필요해 searchFestival 로 따로 받는다 — {@link #syncFestivals(int)}.
+     */
+    private static final int[] CONTENT_TYPES = {
+            CT_ATTRACTION, CT_FOOD, CT_CULTURE, CT_LODGING, CT_LEISURE, CT_SHOPPING, CT_COURSE
+    };
+
+    /** Attraction 테이블에 저장하는 유형 → type 컬럼 값 */
+    private static final Map<Integer, String> ATTRACTION_TYPE_NAMES = Map.of(
+            CT_ATTRACTION, "관광지",
+            CT_CULTURE, "문화시설",
+            CT_LEISURE, "레포츠",
+            CT_LODGING, "숙박",
+            CT_SHOPPING, "쇼핑",
+            CT_FESTIVAL, "축제"
+    );
 
     private static final int NUM_OF_ROWS = 100;
     private static final int MAX_PAGES = 30;          // 지역/시도당 안전 상한
@@ -147,6 +171,46 @@ public class TourSyncService {
         }
     }
 
+    /* =========================================================
+       축제 — searchFestival (행사 기간이 필요해 별도 오퍼레이션)
+       ========================================================= */
+
+    /**
+     * 전국 축제·공연·행사를 적재한다.
+     *
+     * 시도 단위로 나눠 받지 않는다 — searchFestival 은 areaCode 필터가 동작하지 않는다
+     * ({@link TourApiClient#searchFestival} 주석 참고). 전국을 한 번에 받고 좌표로 시군구를 판정하며,
+     * 그래서 호출 수도 시도 순회보다 훨씬 적다(전국 수백 건 = 몇 회).
+     *
+     * @param eventStartDate yyyyMMdd. 이 날짜 이후 시작하거나 진행 중인 행사만 받는다.
+     *                       비어 있으면 오늘 — 즉 <b>이미 끝난 축제는 받지 않는다.</b>
+     */
+    public Map<String, Object> syncFestivals(String eventStartDate) {
+        String from = (eventStartDate == null || eventStartDate.isBlank())
+                ? java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
+                : eventStartDate;
+        Counter c = new Counter();
+
+        for (int page = 1; page <= MAX_PAGES; page++) {
+            if (client.remainingCalls() <= 0) { c.stoppedByBudget = true; break; }
+            TourApiClient.TourPage p = client.searchFestival(from, page, NUM_OF_ROWS);
+            if (p.items().isEmpty()) break;
+            for (JsonNode item : p.items()) {
+                double[] xy = coord(item);
+                if (xy == null) { c.unmapped++; continue; }
+                String sigCd = geometry.resolveSigCd(xy[0], xy[1]).orElse(null);
+                if (sigCd == null) { c.outside++; continue; }
+                upsert(CT_FESTIVAL, item, sigCd, xy, c);
+            }
+            if (p.items().size() < NUM_OF_ROWS) break;
+            sleep();
+        }
+
+        Map<String, Object> result = summary("festival:from:" + from, c);
+        log.info("[TourSync] syncFestivals (from {}) → {}", from, result);
+        return result;
+    }
+
     /** 전국 배치 (17개 시도 순회) */
     public Map<String, Object> syncAll() {
         Map<String, Object> all = new LinkedHashMap<>();
@@ -252,23 +316,42 @@ public class TourSyncService {
         String cid = text(item, "contentid");
         if (cid == null || cid.isBlank()) { c.unmapped++; return; }
         switch (type) {
-            case CT_ATTRACTION -> {
+            case CT_ATTRACTION, CT_CULTURE, CT_LEISURE, CT_LODGING, CT_SHOPPING, CT_FESTIVAL -> {
                 if (attractionRepository.existsBySourceContentId(cid)) { c.skipped++; return; }
                 Attraction a = new Attraction();
                 a.setSigCd(sigCd);
                 a.setName(text(item, "title"));
-                a.setType("관광지");
+                a.setType(ATTRACTION_TYPE_NAMES.getOrDefault(type, "관광지"));
                 a.setAddr(addr(item));
                 a.setLng(xy[0]);
                 a.setLat(xy[1]);
                 a.setSourceContentId(cid);
                 a.setImage(firstNonBlank(text(item, "firstimage"), text(item, "firstimage2")));
                 a.setTel(text(item, "tel"));   // 목록 API 에 이미 들어 있어 추가 호출이 들지 않는다
+                if (type == CT_FESTIVAL) {
+                    // searchFestival 응답에만 들어 있다. 지난 축제를 걸러내려면 이 값이 필요하다.
+                    a.setEventStartDate(text(item, "eventstartdate"));
+                    a.setEventEndDate(text(item, "eventenddate"));
+                }
                 attractionRepository.save(a);
+                c.countByType.merge(a.getType(), 1, Integer::sum);
                 c.attractions++;
             }
             case CT_FOOD -> {
-                if (foodPlaceRepository.existsBySourceContentId(cid)) { c.skipped++; return; }
+                // 이미 적재된 행이라도 사진이 비어 있으면 채운다 —
+                // 음식점 8,540건이 image 컬럼 없이 먼저 들어와서 카드 한 자리가 늘 비어 있었다.
+                FoodPlace existing = foodPlaceRepository.findFirstBySourceContentId(cid).orElse(null);
+                if (existing != null) {
+                    String img = firstNonBlank(text(item, "firstimage"), text(item, "firstimage2"));
+                    if (existing.getImage() == null && img != null && !img.isBlank()) {
+                        existing.setImage(img);
+                        foodPlaceRepository.save(existing);
+                        c.foodImages++;
+                    } else {
+                        c.skipped++;
+                    }
+                    return;
+                }
                 FoodPlace f = new FoodPlace();
                 f.setSigCd(sigCd);
                 f.setName(text(item, "title"));
@@ -277,6 +360,7 @@ public class TourSyncService {
                 f.setLng(xy[0]);
                 f.setLat(xy[1]);
                 f.setSourceContentId(cid);
+                f.setImage(firstNonBlank(text(item, "firstimage"), text(item, "firstimage2")));
                 foodPlaceRepository.save(f);
                 c.foodPlaces++;
             }
@@ -387,7 +471,9 @@ public class TourSyncService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("scope", scope);
         m.put("attractions", c.attractions);
+        m.put("attractionsByType", c.countByType);
         m.put("foodPlaces", c.foodPlaces);
+        m.put("foodImagesFilled", c.foodImages);
         m.put("travelCourses", c.travelCourses);
         m.put("skipped(existing)", c.skipped);
         m.put("outsidePolygon", c.outside);
@@ -396,7 +482,9 @@ public class TourSyncService {
     }
 
     private static final class Counter {
-        int attractions, foodPlaces, travelCourses, skipped, outside, unmapped;
+        int attractions, foodPlaces, foodImages, travelCourses, skipped, outside, unmapped;
         boolean stoppedByBudget;
+        /** Attraction 으로 적재된 건수를 type 별로 나눠 본다(관광지/문화시설/숙박/축제/…) */
+        final Map<String, Integer> countByType = new LinkedHashMap<>();
     }
 }

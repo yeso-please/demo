@@ -14,4 +14,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     /** 닉네임 중복 확인 (표시 이름이라 유일성을 강제하진 않지만 안내에 쓴다) */
     boolean existsByNickname(String nickname);
+
+    /** 공개 지도(/u/{닉네임})가 사람을 찾는 방법 */
+    Optional<AppUser> findByNickname(String nickname);
 }

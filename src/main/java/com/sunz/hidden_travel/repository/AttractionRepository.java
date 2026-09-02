@@ -4,6 +4,7 @@ import com.sunz.hidden_travel.domain.Attraction;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,27 +47,53 @@ public interface AttractionRepository extends JpaRepository<Attraction, Long> {
        ========================================================= */
 
     /**
+     * 선적재 배치가 상세를 채울 유형.
+     *
+     * 숙박·쇼핑·축제는 소개글이 여행 판단에 큰 도움이 안 되는데
+     * 건수는 많아 <b>하루 425건뿐인 배치 예산을 관광지에서 빼앗는다.</b>
+     * 그래서 배치 대상에서 제외한다(필요해지면 여기에 추가하면 된다).
+     */
+    List<String> DETAIL_TARGET_TYPES = List.of("관광지", "문화시설", "레포츠");
+
+    /**
      * 아직 상세를 안 받아온 관광지 id 목록.
      *
      * contentId 가 없으면 TourAPI 에서 가져올 게 없으므로 제외한다
      * (넣어두면 배치가 매번 같은 행을 집어 예산만 태운다).
      * 엔티티가 아니라 id 만 읽어 큰 목록을 메모리에 올리지 않는다.
+     *
+     * <p><b>지역 라운드로빈</b>으로 집는다 — 지역마다 1번째, 그다음 지역마다 2번째… 순.
+     * id 순으로 집으면 앞쪽 몇 지역만 100% 차고 나머지 지역은 몇 주 동안 설명이 비어 있다.
+     * 하루 코스는 지역당 네 자리뿐이라, 전 지역에 네 건씩 먼저 채우는 편이
+     * 화면에 보이는 빈칸을 훨씬 빨리 없앤다(전량 완료는 어느 순서로 돌든 같은 날 끝난다).
+     *
+     * <p>같은 지역 안에서는 <b>사진이 있는 것</b>을 먼저 — 사진이 있어야 카드에 오르고,
+     * 카드에 오르는 곳의 설명이 먼저 필요하다.
      */
-    @Query("""
-            select a.id from Attraction a
-            where a.detailFetched = false
-              and a.sourceContentId is not null and a.sourceContentId <> ''
-            order by a.id
-            """)
-    List<Long> findDetailBackfillCandidates(Pageable pageable);
+    @Query(value = """
+            select id from (
+              select a.id as id,
+                     row_number() over (
+                       partition by a.sig_cd
+                       order by case when a.image is null or a.image = '' then 1 else 0 end, a.id
+                     ) as rn
+              from attraction a
+              where a.detail_fetched = false
+                and a.source_content_id is not null and a.source_content_id <> ''
+                and (a.type is null or a.type in (:types))
+            )
+            order by rn, id
+            """, nativeQuery = true)
+    List<Long> findDetailBackfillCandidates(@Param("types") List<String> types, Pageable pageable);
 
     /** 남은 선적재 대상 수 (진행률 표시용) */
     @Query("""
             select count(a) from Attraction a
             where a.detailFetched = false
               and a.sourceContentId is not null and a.sourceContentId <> ''
+              and (a.type is null or a.type in :types)
             """)
-    long countDetailBackfillRemaining();
+    long countDetailBackfillRemaining(@Param("types") List<String> types);
 
     /** 설명을 실제로 확보한 관광지 수 — detailFetched 와 다르다(응답이 비어 있을 수 있다) */
     @Query("select count(a) from Attraction a where a.description is not null and a.description <> ''")

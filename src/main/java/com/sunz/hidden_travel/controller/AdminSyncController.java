@@ -48,6 +48,21 @@ public class AdminSyncController {
     }
 
     /**
+     * 축제·공연·행사 적재 (contentTypeId=15, searchFestival).
+     * 행사 기간이 필요해 일반 목록 적재와 오퍼레이션이 다르다.
+     *
+     * 전국을 한 번에 받는다 — 이 오퍼레이션은 areaCode 필터가 동작하지 않아
+     * 시도별로 나눠 받을 수 없다(그리고 나눌 필요도 없다. 전국이 수백 건뿐이다).
+     *
+     *  - POST /admin/sync/tour/festivals                → 오늘 이후 시작·진행 중인 행사
+     *  - POST /admin/sync/tour/festivals?from=20260101  → 시작일 지정(지난 축제까지)
+     */
+    @PostMapping("/tour/festivals")
+    public Map<String, Object> tourFestivals(@RequestParam(required = false) String from) {
+        return sync.syncFestivals(from);
+    }
+
+    /**
      * 관광지가 비어 있는 지역만 채운다(1일 호출 한도 안에서).
      * 한도가 소진되면 그 지점에서 멈추고, 다음 날 같은 요청을 다시 보내면 이어서 채운다.
      *

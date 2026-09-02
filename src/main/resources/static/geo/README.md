@@ -7,9 +7,13 @@
 | 파일 | 설명 | 크기 |
 |---|---|---|
 | `sig_original.json` | 원본(GeoJSON, 2022-03 기준) | ~3.6MB |
-| `sig.json` | 경량화 산출물(TopoJSON, 웹에서 사용) | ~60KB |
+| `sig.json` | 경량화 산출물(TopoJSON, 웹에서 사용) | ~214KB |
 
 `sig.json` 속성은 `SIG_CD`, `SIG_KOR_NM` 두 개만 유지.
+
+> **단순화 비율 주의** — 처음에는 `3%` 였다. 그러면 전체 좌표가 80,710점 → 3,122점
+> (지역당 평균 12점)만 남아 시군구 경계가 뭉개지고 "250개로 나뉘어 보이지 않는" 상태가 된다.
+> 지도가 이 서비스의 중심 화면이므로 `35%`(약 20,000점)를 쓴다. 산출물 214KB 로 웹에서 충분히 가볍다.
 
 ## 원본 출처
 - 채택: `vuski/admdongkor` → `ver20220309/ver20220309_sgg_vote_simple.geojson`
@@ -25,10 +29,10 @@ npm install -g mapshaper
 mapshaper sig_original.json \
   -rename-fields SIG_CD=sgg,SIG_KOR_NM=SGGNM \
   -filter-fields SIG_CD,SIG_KOR_NM \
-  -simplify 3% keep-shapes \
+  -simplify 35% keep-shapes \
   -o format=topojson sig.json
 ```
-- `-simplify 3% keep-shapes`: 정점 3%만 유지하되 각 피처가 통째로 사라지지 않도록 보존(작은 섬 유실 방지).
+- `-simplify 35% keep-shapes`: 정점 3%만 유지하되 각 피처가 통째로 사라지지 않도록 보존(작은 섬 유실 방지).
 - `-filter-fields`: 속성을 두 개만 남겨 용량 절감.
 - 정본 SHP를 원본으로 쓰면 원본이 수 MB~수십 MB라 3% 단순화가 의미 있게 작동해 산출물이 수백 KB 수준이 된다(1MB 이하).
 

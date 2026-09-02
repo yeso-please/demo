@@ -25,12 +25,10 @@ public class PageController {
     private static final String DEFAULT_SIG = "47170"; // 안동시
 
     /** 지도 왼쪽에 띄울 스포트라이트 카드 수 */
-    private static final int SPOTLIGHT_COUNT = 2;
 
     private final DummyRegionData regionData;
     private final RegionQueryService regionQueryService;
     private final com.sunz.hidden_travel.user.CurrentUserService currentUserService;
-    private final com.sunz.hidden_travel.service.SpotlightService spotlightService;
     private final com.sunz.hidden_travel.service.RegionIntroService regionIntroService;
 
     /** 카카오맵 JavaScript 키 (출발지 역지오코딩용, 없으면 목적지만 길찾기) */
@@ -39,12 +37,10 @@ public class PageController {
 
     public PageController(DummyRegionData regionData, RegionQueryService regionQueryService,
                           com.sunz.hidden_travel.user.CurrentUserService currentUserService,
-                          com.sunz.hidden_travel.service.SpotlightService spotlightService,
                           com.sunz.hidden_travel.service.RegionIntroService regionIntroService) {
         this.regionData = regionData;
         this.regionQueryService = regionQueryService;
         this.currentUserService = currentUserService;
-        this.spotlightService = spotlightService;
         this.regionIntroService = regionIntroService;
     }
 
@@ -75,8 +71,10 @@ public class PageController {
     @GetMapping("/map")
     public String map(Model model) {
         model.addAttribute("regionOptions", regionData.options());
-        // 지역을 고르기 전 왼쪽 여백을 채우는 '오늘의 숨은 여행지'
-        model.addAttribute("spotlights", spotlightService.pick(SPOTLIGHT_COUNT));
+        // '오늘의 숨은 여행지'를 걷어냈다.
+        // 선정 기준이 '수도권 시도코드 하드코딩 배제 + 관광지 10곳 이상'이라
+        // 랭킹을 없앤 게 아니라 다른 규칙으로 바꾼 것이었다(제품원칙 2와 충돌).
+        // 이 자리는 온보딩 뒤 '내 발견 카드'가 쓴다.
         return "map";
     }
 

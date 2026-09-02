@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('숨은여행 · 여행 의견 요약')}"></head>
+<body class="bg-background text-text-primary min-h-screen font-body-main antialiased">
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="trip-summary-page">
+    <div class="summary-heading">
+        <div><span class="room-status" th:text="${view.room.status == 'CONFIRMED'} ? '여행 확정' : '의견 모으는 중'">상태</span><span th:text="${view.participants.size() + '명 참여'}">4명 참여</span></div>
+        <h1 th:text="${view.room.status == 'CONFIRMED' and view.selectedCandidate != null} ? ${view.selectedCandidate.narrativeTitle} : '일행의 의견이 이렇게 모였어요'">의견 요약</h1>
+        <p th:if="${view.room.status != 'CONFIRMED'}">다수 의견뿐 아니라 우려와 다른 선택도 함께 확인하고 결정하세요.</p>
+    </div>
+
+    <section th:if="${view.room.status != 'CONFIRMED'}" class="consensus-grid">
+        <article><span class="material-symbols-outlined">favorite</span><h2>공통 선호</h2><p th:text="${#strings.listJoin(view.request.experiences, ' · ')} ?: '코스를 실제로 보고 의견을 모으고 있어요.'">산책 · 시장</p></article>
+        <article th:if="${view.hasContext()}"><span class="material-symbols-outlined">route</span><h2>여행 조건</h2><p th:text="${view.request.departure + ' 출발 · ' + view.request.transport + ' · ' + view.request.duration}">조건</p></article>
+        <article><span class="material-symbols-outlined">forum</span><h2>확인할 의견</h2><p th:text="${view.reactionCount() == 0} ? '아직 도착한 의견이 없어요.' : ${view.reactionCount() + '개의 후보별 반응이 모였어요.'}">반응</p></article>
+    </section>
+
+    <section th:if="${view.room.status != 'CONFIRMED'}" class="decision-section">
+        <div class="decision-list">
+            <article th:each="item : ${view.candidates}" th:classappend="${suggested != null and suggested.candidate.courseKey == item.candidate.courseKey} ? ' suggested'">
+                <div><span class="direction-badge" th:if="${item.candidate.directionLabel != null}" th:text="${item.candidate.directionLabel}">방향</span><span class="candidate-location" th:text="${item.candidate.province + ' · ' + item.candidate.regionName}">지역</span><h2 th:text="${item.candidate.narrativeTitle}">후보</h2><p th:text="${item.candidate.reason}">근거</p></div>
+                <div class="decision-counts"><span><b th:text="${item.likeCount}">0</b> 좋아요</span><span><b th:text="${item.okayCount}">0</b> 괜찮아요</span><span><b th:text="${item.passCount}">0</b> 다른 곳</span></div>
+                <form th:if="${isHost}" th:action="@{/trips/{code}/confirm(code=${view.room.shareCode})}" method="post"><input type="hidden" name="courseKey" th:value="${item.candidate.courseKey}"><button class="btn-primary" type="submit">이 코스로 확정</button></form>
+            </article>
+        </div>
+        <aside class="summary-side-map">
+            <div class="map-skeleton" id="trip-map-loading"><span>지도 로딩 중...</span></div>
+            <svg class="korea-map trip-korea-map" data-trip-map th:attr="data-candidates=${#strings.listJoin(view.candidates.![candidate.sigCd], ',')}" viewBox="0 0 800 1000"></svg>
+            <a th:href="@{/trips/{code}(code=${view.room.shareCode})}" class="btn-secondary">조금 더 기다리기</a>
+        </aside>
+    </section>
+
+    <section th:if="${view.room.status == 'CONFIRMED' and view.selectedCandidate != null}" class="confirmed-layout">
+        <aside class="confirmed-map-column">
+            <div class="confirmed-map-wrap"><div class="map-skeleton" id="trip-map-loading"><span>지도 로딩 중...</span></div><svg class="korea-map trip-korea-map" data-trip-map th:attr="data-candidates=${view.selectedCandidate.sigCd}" viewBox="0 0 800 1000"></svg></div>
+            <a th:href="${view.selectedCandidate.detailUrl}" class="btn-primary trip-primary-action"><span class="material-symbols-outlined">route</span>확정 코스 열기</a>
+            <button type="button" class="btn-secondary" data-copy-link><span class="material-symbols-outlined">share</span>일정 공유</button>
+        </aside>
+        <div class="confirmed-course">
+            <div class="sage-impact" th:if="${view.selectedCandidate.goodPriceCount > 0}"><span class="material-symbols-outlined">volunteer_activism</span><p>행정안전부 지정 착한가격업소 <strong th:text="${view.selectedCandidate.goodPriceCount + '곳'}">1곳</strong>을 포함해 지역 상권으로 소비를 연결해요.</p></div>
+            <div class="confirmed-facts"><span th:text="${view.selectedCandidate.courseOrigin}">자동 조립</span><span th:text="${view.selectedCandidate.distanceText + ' 이동 추정'}">거리</span><span th:text="${view.selectedCandidate.warning}">미검증</span></div>
+            <div class="course-timeline">
+                <article th:each="stop : ${view.selectedCandidate.dayPlan.stops}">
+                    <div class="timeline-dot"></div><span class="timeline-slot" th:text="${stop.slot}">오전</span>
+                    <div class="timeline-card"><img th:if="${stop.image != null}" th:src="${stop.image}" th:alt="${stop.name}"><div><div><h2 th:text="${stop.name}">장소</h2><span th:text="${stop.category}">관광지</span><span th:if="${stop.sage}" class="badge-sage">착한가격업소</span></div><p th:text="${stop.addr}">주소</p><small th:text="${stop.hoursVerified} ? ${stop.hoursText} : '운영시간 미검증'">운영시간</small></div></div>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script th:src="@{/js/d3-array.min.js}"></script><script th:src="@{/js/d3-geo.min.js}"></script>
+<script th:src="@{/js/topojson-client.min.js}"></script><script th:src="@{/js/trip-map.js}"></script>
+<script th:src="@{/js/trip-ui.js}"></script>
+</body>
+</html>

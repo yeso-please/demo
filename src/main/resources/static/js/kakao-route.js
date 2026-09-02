@@ -109,7 +109,7 @@
             el = document.createElement('div');
             el.id = 'geo-toast';
             el.setAttribute('style',
-                'position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--text);color:#fff;' +
+                'position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--text);color:var(--bg);' +
                 'padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .25s ease;max-width:90%;text-align:center;');
             document.body.appendChild(el);
         }
