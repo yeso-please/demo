@@ -145,6 +145,48 @@
     display: flex;
     flex-direction: column;
     animation: slideInRight 0.35s ease-out;
+    box-shadow: -24px 0 48px rgba(4, 10, 22, .48), -1px 0 0 rgba(151, 177, 220, .22);
+}
+
+/* 선택 시 확대/축소 없이 지도 캔버스만 옆으로 밀어, 상세 카드가 펼쳐지는 느낌을 준다. */
+#map-main > section {
+    transition: transform .45s cubic-bezier(.22, .75, .25, 1), filter .45s ease;
+}
+#my-picks,
+#my-picks #picks-scroll {
+    min-height: 0;
+}
+#my-picks #picks-scroll {
+    /* absolute aside 안에서 flex 높이가 콘텐츠 높이로 늘어나지 않도록
+       스크롤 viewport를 명시한다. 그래야 자동 scrollTop이 실제로 보인다. */
+    flex: 1 1 auto;
+    height: calc(100% - 42px);
+    max-height: 100%;
+    overflow-y: auto;
+}
+#map-main.region-selected > section:first-child {
+    transform: translateX(-22px);
+    filter: brightness(1.04);
+}
+@keyframes picksAutoReveal {
+    0%, 100% { box-shadow: none; }
+    35% { filter: drop-shadow(0 0 12px rgba(255, 198, 97, .38)); }
+}
+#my-picks.auto-reveal {
+    animation: picksAutoReveal 1100ms ease-out both;
+}
+#picks-list.picks-auto-track {
+    animation: picksAutoTrack 28s linear infinite;
+    will-change: transform;
+}
+@keyframes picksAutoTrack {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-1 * var(--picks-loop-distance))); }
+}
+@media (max-width: 767px) {
+    #map-main.region-selected > section:first-child {
+        transform: none;
+    }
 }
 
 /* 반응형: 좁은 화면에서는 하단 시트로 (지도 위에 겹쳐 위로 슬라이드) */

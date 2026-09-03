@@ -29,6 +29,13 @@
     const marks = document.getElementById('marks');
     const readRow = document.getElementById('read-row');
     const readTags = document.getElementById('read-tags');
+    const regionPreview = document.getElementById('region-preview');
+    const regionPreviewImage = document.getElementById('region-preview-image');
+    const regionPreviewPlaceholder = document.getElementById('region-preview-placeholder');
+    const regionPreviewKicker = document.getElementById('region-preview-kicker');
+    const regionPreviewTitle = document.getElementById('region-preview-title');
+    const regionPreviewSummary = document.getElementById('region-preview-summary');
+    const regionPreviewSpots = document.getElementById('region-preview-spots');
 
     const entriesBox = document.getElementById('entries');
     const entriesEmpty = document.getElementById('entries-empty');
@@ -37,10 +44,12 @@
     const doneHint = document.getElementById('done-hint');
 
     const names = {};              // sigCd -> 지역명
+    const centersByCode = {};      // sigCd -> 지도상 중심 좌표
     let entries = [];              // 저장된 편
     let draft = null;              // 지금 쓰는 편
     let dropped = [];              // 사용자가 뺀 태그
     let mapReady = false;
+    let mapSelecting = false;
 
     /* ---------- 지역 고르기 ---------- */
 
@@ -74,7 +83,11 @@
         if (!mapReady) { await renderMap(); mapReady = true; }
         mapWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-    mapClose.addEventListener('click', () => mapWrap.classList.add('hidden'));
+    mapClose.addEventListener('click', () => {
+        mapWrap.classList.add('hidden');
+        pick.classList.remove('hidden');
+        regionInput.focus();
+    });
 
     async function renderMap() {
         let topo;
@@ -104,21 +117,80 @@
             const t = document.createElementNS(SVG_NS, 'title');
             t.textContent = names[cd] || cd;
             p.appendChild(t);
+            centersByCode[cd] = path.centroid(f);
             frag.appendChild(p);
         }
-        svg.appendChild(frag);
+        const base = document.getElementById('visit-map-base') || svg;
+        base.appendChild(frag);
         mapLoading.style.display = 'none';
         paintMap();
 
         svg.addEventListener('click', (e) => {
             const t = e.target.closest && e.target.closest('.sig-path');
-            if (t) { startDraft(t.getAttribute('data-sig-cd')); mapWrap.classList.add('hidden'); }
+            if (t) chooseMapRegion(t.getAttribute('data-sig-cd'));
         });
         svg.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             const t = e.target.closest && e.target.closest('.sig-path');
-            if (t) { e.preventDefault(); startDraft(t.getAttribute('data-sig-cd')); mapWrap.classList.add('hidden'); }
+            if (t) { e.preventDefault(); chooseMapRegion(t.getAttribute('data-sig-cd')); }
         });
+    }
+
+    function chooseMapRegion(sigCd) {
+        if (!sigCd || mapSelecting) return;
+        mapSelecting = true;
+        igniteMapRegion(sigCd);
+        // 점등 장면을 잠깐 보여준 뒤 다이어리 페이지가 펼쳐진다.
+        setTimeout(() => {
+            startDraft(sigCd);
+            mapWrap.classList.add('hidden');
+            mapSelecting = false;
+        }, 600);
+    }
+
+    function igniteMapRegion(sigCd) {
+        svg.querySelectorAll('.sig-path.diary-selected').forEach((p) =>
+            p.classList.remove('diary-selected', 'diary-selected-ignite'));
+        const target = svg.querySelector('.sig-path[data-sig-cd="' + sigCd + '"]');
+        if (!target) return;
+        target.classList.add('diary-selected');
+        target.classList.remove('diary-selected-ignite');
+        void target.offsetWidth;
+        target.classList.add('diary-selected-ignite');
+
+        const glow = document.getElementById('visit-map-selected-glow');
+        if (glow) {
+            glow.textContent = '';
+            const clone = target.cloneNode(false);
+            clone.removeAttribute('class');
+            clone.setAttribute('fill', '#FFC661');
+            clone.setAttribute('stroke', '#FFF4C8');
+            clone.setAttribute('stroke-width', '2');
+            glow.appendChild(clone);
+        }
+        const flash = document.getElementById('visit-map-flash');
+        if (flash) { flash.classList.remove('active'); void flash.offsetWidth; flash.classList.add('active'); }
+        burstMapRegion(sigCd);
+    }
+
+    function burstMapRegion(sigCd) {
+        const layer = document.getElementById('visit-map-sparks');
+        const center = centersByCode[sigCd];
+        if (!layer || !center) return;
+        for (let i = 0; i < 9; i++) {
+            const angle = (Math.PI * 2 / 9) * i + .2;
+            const distance = 20 + (i % 3) * 9;
+            const spark = document.createElementNS(SVG_NS, 'circle');
+            spark.setAttribute('cx', center[0]);
+            spark.setAttribute('cy', center[1]);
+            spark.setAttribute('r', i % 3 === 0 ? '2.7' : '1.7');
+            spark.setAttribute('class', 'map-spark');
+            spark.style.setProperty('--spark-x', Math.cos(angle) * distance + 'px');
+            spark.style.setProperty('--spark-y', Math.sin(angle) * distance + 'px');
+            spark.style.animationDelay = i * 24 + 'ms';
+            layer.appendChild(spark);
+            setTimeout(() => spark.remove(), 1300 + i * 24);
+        }
     }
 
     function paintMap() {
@@ -142,18 +214,67 @@
 
         pick.classList.add('hidden');
         write.classList.remove('hidden');
+        pageTurn(write);
         regionInput.value = '';
         regionList.classList.add('hidden');
         readNote();
+        loadRegionPreview(sigCd);
         wNote.focus();
+    }
+
+    async function loadRegionPreview(sigCd) {
+        if (!regionPreview) return;
+        regionPreview.classList.remove('hidden');
+        regionPreviewKicker.textContent = '당신이 고른 곳';
+        regionPreviewTitle.textContent = names[sigCd] || sigCd;
+        regionPreviewSummary.textContent = '이 지역의 여행 페이지를 펼치는 중…';
+        regionPreviewSpots.innerHTML = '';
+        regionPreviewImage.hidden = true;
+        regionPreviewPlaceholder.hidden = false;
+        try {
+            const res = await fetch('/api/regions/' + encodeURIComponent(sigCd) + '/preview');
+            if (!res.ok) throw new Error('preview failed');
+            const data = await res.json();
+            regionPreviewKicker.textContent = data.province ? data.province + ' · 당신의 기록' : '당신이 고른 곳';
+            regionPreviewTitle.textContent = data.name || names[sigCd] || sigCd;
+            regionPreviewSummary.textContent = data.summary || '이 지역의 여행 페이지를 펼쳐보세요.';
+            const firstImage = (data.attractions || []).find((a) => a.image);
+            if (firstImage) {
+                regionPreviewImage.src = firstImage.image;
+                regionPreviewImage.alt = firstImage.name || data.name || '지역 대표 사진';
+                regionPreviewImage.hidden = false;
+                regionPreviewPlaceholder.hidden = true;
+            }
+            (data.attractions || []).forEach((spot) => {
+                const chip = document.createElement('span');
+                chip.className = 'region-preview__spot';
+                chip.textContent = spot.name;
+                chip.title = spot.description || spot.name;
+                regionPreviewSpots.appendChild(chip);
+            });
+        } catch (e) {
+            regionPreviewSummary.textContent = '이곳에서 보낸 시간을 한 줄씩 적어보세요.';
+        }
     }
 
     function closeDraft() {
         draft = null;
         write.classList.add('hidden');
-        pick.classList.remove('hidden');
+        pick.classList.add('hidden');
+        mapWrap.classList.remove('hidden');
+        pageTurn(mapWrap);
         marks.innerHTML = '';
         readRow.classList.add('hidden');
+        if (!mapReady) {
+            renderMap().then(() => { mapReady = true; });
+        }
+    }
+
+    function pageTurn(el) {
+        if (!el) return;
+        el.classList.remove('page-turn-in');
+        void el.offsetWidth;
+        el.classList.add('page-turn-in');
     }
 
     wChange.addEventListener('click', closeDraft);
@@ -316,7 +437,7 @@
             body: JSON.stringify(entries)
         }).finally(() => {
             try { sessionStorage.setItem('discovery.reveal', '1'); } catch (e) { /* 무시 */ }
-            window.location.href = '/map';
+            window.location.href = '/map?from=diary';
         });
     });
 
@@ -327,6 +448,14 @@
             entries = Array.isArray(saved) ? saved : [];
         } catch (e) { entries = []; }
         renderEntries();
+
+        // 첫 진입은 검색보다 지도를 먼저 보여준다. 지도에서 지역을 고르면 바로 일지가 펼쳐진다.
+        mapWrap.classList.remove('hidden');
+        if (!mapReady) {
+            await renderMap();
+            mapReady = true;
+        }
+        pageTurn(mapWrap);
 
         // [다녀왔어요]로 들어왔으면 지역은 이미 정해져 있다 — 고르는 단계를 건너뛴다.
         // 방금 다녀온 사람에게 "어디 다녀오셨나요"를 다시 묻는 건 이상하다.

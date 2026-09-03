@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('여행 기록 — 숨은여행')}"></head>
+<head th:replace="~{fragments/layout :: head('여행 기록 — 여행페이지')}"></head>
 <body class="bg-background text-text-primary min-h-screen flex flex-col">
 
 <header th:replace="~{fragments/layout :: header}"></header>
 
-<main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8"
+<main class="diary-book flex-1 w-full max-w-5xl mx-auto px-4 py-8"
       th:attr="data-course-id=${courseId}, data-course-sig=${courseSigCd}, data-course-title=${courseTitle}">
+
+    <div class="diary-book__masthead" aria-hidden="true">
+        <span>TRAVEL DIARY</span>
+        <span class="diary-book__masthead-line"></span>
+        <span>VOL. 01 · A PLACE I REMEMBER</span>
+    </div>
 
     <!-- 머리말 -->
     <section class="flex flex-wrap items-end justify-between gap-5 mb-6">
@@ -32,10 +38,10 @@
     </section>
 
     <!-- 지금 쓰는 편 -->
-    <section id="sheet" class="bg-surface border border-border rounded-card overflow-hidden mb-5">
+    <section id="sheet" class="diary-shell bg-surface border border-border rounded-card overflow-hidden mb-5">
 
         <!-- 지역 고르기 (아직 안 골랐을 때) -->
-        <div id="pick" class="p-card-padding">
+        <div id="pick" class="p-card-padding hidden">
             <h2 class="font-body-main text-body mb-3">어디를 다녀오셨나요?</h2>
             <div class="relative">
                 <label for="region-input" class="sr-only">지역 검색</label>
@@ -61,6 +67,18 @@
                 <span class="font-caption text-caption text-text-muted">
                     다녀온 코스 · <b class="text-primary" th:text="${courseTitle}">코스명</b>
                 </span>
+            </div>
+            <div id="region-preview" class="region-preview hidden" aria-live="polite">
+                <div class="region-preview__image-wrap">
+                    <img id="region-preview-image" class="region-preview__image" alt="" hidden>
+                    <span id="region-preview-placeholder" class="material-symbols-outlined" aria-hidden="true">landscape</span>
+                </div>
+                <div class="region-preview__body">
+                    <span id="region-preview-kicker" class="region-preview__kicker">당신이 고른 곳</span>
+                    <strong id="region-preview-title" class="region-preview__title">지역</strong>
+                    <p id="region-preview-summary" class="region-preview__summary"></p>
+                    <div id="region-preview-spots" class="region-preview__spots"></div>
+                </div>
             </div>
             <!-- 일지의 첫 줄 — 언제, 어디 -->
             <div class="paper-head flex items-baseline gap-3.5">
@@ -107,19 +125,34 @@
     </section>
 
     <!-- 지도 (지도에서 고를게요) -->
-    <section id="map-wrap" class="hidden bg-surface border border-border rounded-card overflow-hidden mb-5">
+    <section id="map-wrap" class="map-selection bg-surface border border-border rounded-card overflow-hidden mb-5">
         <div class="flex items-center justify-between px-card-padding py-3 border-b border-border">
-            <h2 class="font-body-main text-body">지도에서 고르기</h2>
+            <div>
+                <span class="diary-kicker">첫 줄을 시작하기 전에</span>
+                <h2 class="font-display-title text-[22px] text-primary">어디의 기억인가요?</h2>
+            </div>
             <button type="button" id="map-close"
-                    class="font-caption text-caption text-text-muted hover:text-primary">닫기</button>
+                    class="font-caption text-caption text-text-muted hover:text-primary">검색으로 고르기</button>
         </div>
+        <p class="map-instruction">지도에서 다녀온 지역을 한 곳 골라주세요. 고른 곳의 페이지가 펼쳐집니다.</p>
         <div class="relative">
             <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-surface z-10">
                 <span class="font-caption text-caption text-text-muted">지도를 불러오는 중…</span>
             </div>
             <svg id="visit-map" class="w-full h-auto" viewBox="0 0 800 1000"
                  preserveAspectRatio="xMidYMid meet" role="img"
-                 aria-label="대한민국 시군구 지도 — 다녀온 지역을 고르세요"></svg>
+                 aria-label="대한민국 시군구 지도 — 다녀온 지역을 고르세요">
+                <defs>
+                    <filter id="visit-discovery-glow" x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="9" result="b"></feGaussianBlur>
+                        <feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="b"></feMergeNode></feMerge>
+                    </filter>
+                </defs>
+                <g id="visit-map-base"></g>
+                <g id="visit-map-selected-glow" filter="url(#visit-discovery-glow)" aria-hidden="true"></g>
+                <g id="visit-map-sparks" aria-hidden="true"></g>
+            </svg>
+            <div id="visit-map-flash" aria-hidden="true"></div>
         </div>
     </section>
 
@@ -146,11 +179,127 @@
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 
 <style>
+    /* 전체 페이지를 한 장의 실물 다이어리처럼 보이게 하는 바탕 */
+    .diary-book {
+        --diary-paper: #eadcc2;
+        --diary-paper-deep: #dfcda9;
+        --diary-ink: #3b3028;
+        --diary-muted: #796957;
+        --diary-line: rgba(91, 112, 132, .22);
+        position: relative;
+        isolation: isolate;
+        color: var(--diary-ink);
+        margin-top: 28px;
+        margin-bottom: 28px;
+        padding: 27px clamp(18px, 4vw, 44px) 42px;
+        border: 1px solid rgba(255, 245, 222, .48);
+        border-radius: 5px;
+        background-color: var(--diary-paper);
+        background-image:
+            radial-gradient(circle at 11% 19%, rgba(118, 84, 44, .07) 0 1px, transparent 1.5px),
+            radial-gradient(circle at 76% 63%, rgba(118, 84, 44, .055) 0 1px, transparent 1.5px),
+            repeating-linear-gradient(0deg, rgba(108, 75, 37, .025) 0 1px, transparent 1px 4px),
+            linear-gradient(105deg, rgba(255,255,255,.2), transparent 32%, rgba(122, 85, 45, .06));
+        box-shadow: 0 28px 70px rgba(0,0,0,.32), 0 2px 0 rgba(255,255,255,.14) inset;
+    }
+    .diary-book::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        top: 10px; bottom: -9px; left: 10px; right: -10px;
+        border: 1px solid rgba(223, 205, 169, .38);
+        border-radius: 5px;
+        background: var(--diary-paper-deep);
+        transform: rotate(.35deg);
+        box-shadow: 0 12px 28px rgba(0,0,0,.17);
+    }
+    .diary-book::after {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0; left: 17px;
+        width: 1px;
+        background: rgba(146, 79, 51, .22);
+        box-shadow: 4px 0 0 rgba(255,255,255,.18);
+        pointer-events: none;
+    }
+    .diary-book__masthead {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0 0 27px 24px;
+        color: #956332;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .18em;
+    }
+    .diary-book__masthead-line { width: 42px; height: 1px; background: #b2824b; }
+    .diary-book > section:first-of-type { color: var(--diary-ink); }
+    .diary-book > section:first-of-type h1 { color: #4a3325; }
+    .diary-book > section:first-of-type p { color: var(--diary-muted); }
+    .diary-book #sheet,
+    .diary-book #map-wrap { border-color: rgba(127, 91, 53, .28); background: rgba(255,255,255,.14); box-shadow: 0 12px 28px rgba(89, 57, 27, .14); }
+    .diary-book #map-wrap .border-b { border-color: rgba(127, 91, 53, .2); }
+    .diary-book .map-instruction { color: var(--diary-muted); }
+    .diary-book .map-selection { background: rgba(255,255,255,.18); }
+    .diary-book .map-selection #visit-map { background: radial-gradient(circle at 50% 44%, rgba(138, 96, 45, .08), transparent 48%); }
+    .diary-book .paper { background: rgba(255,255,255,.22); border-top-color: rgba(127, 91, 53, .22); box-shadow: none; }
+    .diary-book .paper-head { border-bottom-color: rgba(127, 91, 53, .22); }
+    .diary-book .when-field { color: var(--diary-muted); }
+    .diary-book .when-field::placeholder { color: #9a8873; }
+    .diary-book .region-name { color: #984f29; }
+    .diary-book .paper-head .region-name::before { color: #a28d76; }
+    .diary-book .change-btn { border-color: rgba(127, 91, 53, .3); color: var(--diary-muted); }
+    .diary-book .editor-wrap { background-image: repeating-linear-gradient(to bottom, transparent 0 33px, var(--diary-line) 33px 34px); }
+    .diary-book .editor-wrap::before { background: rgba(154, 77, 48, .36); }
+    .diary-book .editor-input { color: var(--diary-ink); caret-color: #a45728; }
+    .diary-book .editor-input::placeholder { color: #9a8873; }
+    .diary-book .sat-btn { border-color: rgba(127, 91, 53, .25); background: rgba(255,255,255,.28); color: var(--diary-ink); }
+    .diary-book .sat-btn.on { background: #d99c58; border-color: #c27d38; color: #38261b; }
+    .diary-book .entry { background: rgba(255,255,255,.2); border-color: rgba(127, 91, 53, .25); }
+    .diary-book .entry .e-head { color: #984f29; }
+    .diary-book .entry .e-body, .diary-book .entry-empty { color: var(--diary-muted); }
+    .diary-book .entry-add { background: rgba(255,255,255,.12); border-color: rgba(127, 91, 53, .35); color: var(--diary-muted); }
+    .diary-book .diary-kicker { color: #9b7145; }
+    .diary-book .text-primary, .diary-book .text-primary * { color: #984f29; }
+    .diary-book .text-text-muted { color: var(--diary-muted); }
+    .diary-book .bg-primary { background: #35271f; color: #f6e5c8; }
+    .diary-book .bg-surface-alt { background: rgba(255,255,255,.25); }
+    .diary-book .border-border { border-color: rgba(127, 91, 53, .25); }
+    .page-turn-in { animation: diary-page-turn 520ms cubic-bezier(.16,.84,.3,1) both; transform-origin: left center; }
+    @keyframes diary-page-turn { from { opacity: 0; transform: perspective(900px) rotateY(-13deg) translateX(-10px); } to { opacity: 1; transform: perspective(900px) rotateY(0) translateX(0); } }
+    @media (max-width: 640px) {
+        .diary-book { margin-top: 12px; padding: 21px 12px 30px; }
+        .diary-book::after { left: 9px; }
+        .diary-book__masthead { margin-left: 12px; margin-bottom: 20px; font-size: 8px; letter-spacing: .1em; }
+        .diary-book__masthead-line { width: 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .page-turn-in { animation: none; } }
+
+    .diary-shell { position: relative; box-shadow: 0 20px 45px rgba(0,0,0,.24); }
+    .diary-shell::before { content: ''; position: absolute; top: 0; bottom: 0; left: 18px; width: 1px; background: rgba(239,193,123,.12); pointer-events: none; z-index: 2; }
+    .diary-kicker { display: block; margin-bottom: 2px; color: var(--text-muted); font-size: 10px; letter-spacing: .12em; }
+    .map-selection { box-shadow: 0 16px 36px rgba(0,0,0,.2); }
+    .map-instruction { padding: 0 var(--space-3) 14px; color: var(--text-muted); font-family: var(--font-serif); font-size: 14px; }
+    .region-preview { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; margin: 0 var(--space-3) 2px; padding: 12px; border: 1px solid rgba(239,193,123,.18); border-radius: 4px; background: linear-gradient(135deg, rgba(243,196,119,.10), rgba(20,14,12,.12)); animation: region-page-open 360ms ease-out both; }
+    .region-preview__image-wrap { display: grid; place-items: center; min-height: 104px; overflow: hidden; border: 1px solid rgba(239,193,123,.22); background: var(--surface-alt); color: var(--accent); }
+    .region-preview__image { width: 100%; height: 100%; min-height: 104px; object-fit: cover; }
+    .region-preview__body { min-width: 0; align-self: center; }
+    .region-preview__kicker { display: block; margin-bottom: 1px; color: var(--accent-hover); font-size: 10px; letter-spacing: .1em; }
+    .region-preview__title { display: block; overflow: hidden; color: var(--accent); font-family: var(--font-serif); font-size: 20px; white-space: nowrap; text-overflow: ellipsis; }
+    .region-preview__summary { display: -webkit-box; margin: 3px 0 7px; overflow: hidden; color: var(--text-muted); font-family: var(--font-serif); font-size: 12px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .region-preview__spots { display: flex; flex-wrap: wrap; gap: 5px; }
+    .region-preview__spot { max-width: 100%; padding: 2px 7px; overflow: hidden; border: 1px solid rgba(239,193,123,.22); border-radius: 999px; color: var(--text); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+    @keyframes region-page-open { from { opacity: 0; transform: translateY(-7px); clip-path: inset(0 0 100% 0); } to { opacity: 1; transform: translateY(0); clip-path: inset(0); } }
+    @media (max-width: 520px) { .region-preview { grid-template-columns: 82px minmax(0,1fr); gap: 10px; padding: 9px; } .region-preview__image-wrap, .region-preview__image { min-height: 82px; } }
+    @media (prefers-reduced-motion: reduce) { .region-preview { animation: none; } }
+    #visit-map { display: block; min-height: 430px; background: radial-gradient(circle at 50% 44%, rgba(243,196,119,.08), transparent 45%); }
+    @media (max-width: 640px) { #visit-map { min-height: 360px; } .diary-shell::before { left: 12px; } }
+
     /* ── 종이 ──
        앱의 패널이 아니라 한 장의 종이로 보이게 한다. 배경보다 살짝 밝고 따뜻하게 두고,
        그림자로 살짝 띄운다. 다이어리는 '화면'이 아니라 '물건'이어야 쓰고 싶어진다. */
     .paper {
-        background: #302018;
+        background: #202C3E;
         border-top: 1px solid rgba(239, 193, 123, .16);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.28);
     }
@@ -258,6 +407,13 @@
                 vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .15s; }
     .sig-path:hover { fill: var(--accent-soft); }
     .sig-path.written { fill: var(--accent); stroke: var(--accent-hover); }
+    .sig-path.diary-selected { fill: var(--accent); stroke: var(--accent-hover); stroke-width: 1.8px; filter: drop-shadow(0 0 7px var(--glow-color)) drop-shadow(0 0 15px rgba(255,198,97,.42)); }
+    .sig-path.diary-selected-ignite { animation: selection-ignite 1050ms cubic-bezier(.16,.84,.3,1) both; }
+    #visit-map-selected-glow { mix-blend-mode: screen; opacity: .95; animation: selected-glow-breathe 1250ms ease-in-out infinite alternate; pointer-events: none; }
+    #visit-map-sparks .map-spark { fill: #fff4c8; }
+    #visit-map-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 48%, rgba(255,214,137,.3), transparent 30%), radial-gradient(circle at 50% 48%, rgba(92,132,201,.18), transparent 64%); }
+    #visit-map-flash.active { animation: map-stage-flash 900ms ease-out both; }
+    @media (prefers-reduced-motion: reduce) { .sig-path.diary-selected-ignite, #visit-map-selected-glow, #visit-map-flash.active { animation: none; } }
 </style>
 
 <script src="/js/d3-array.min.js"></script>

@@ -5,13 +5,10 @@
 
     const VIEW_W = 800;
     const VIEW_H = 1000;
-    const FULL_VIEWBOX = [0, 0, VIEW_W, VIEW_H];
     const SVG_NS = 'http://www.w3.org/2000/svg';
-    const ZOOM_MS = 350;
 
-    let svg, panel, panelBody;
+    let svg, panel, panelBody, coursePanel, coursePanelBody;
     const boundsByCode = {};   // SIG_CD → [[x0,y0],[x1,y1]]
-    let vbAnim = null;         // 진행 중인 viewBox 애니메이션 취소용
 
     /* ---------- 유틸 ---------- */
     function el(tag, cls, text) {
@@ -28,8 +25,6 @@
     function setShow(node, show) {
         node.style.display = show ? '' : 'none';
     }
-    const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-
     /* ---------- 지도 렌더 ---------- */
     async function renderMap() {
         const loading = document.getElementById('map-loading');
@@ -94,49 +89,29 @@
         });
     }
 
-    /* ---------- viewBox 줌/팬 (부드럽게) ---------- */
-    function animateViewBox(target) {
-        const start = svg.getAttribute('viewBox').split(/\s+/).map(Number);
-        if (vbAnim) cancelAnimationFrame(vbAnim);
-        const t0 = performance.now();
-        function step(now) {
-            const p = Math.min(1, (now - t0) / ZOOM_MS);
-            const k = easeInOut(p);
-            const cur = start.map((s, i) => s + (target[i] - s) * k);
-            svg.setAttribute('viewBox', cur.join(' '));
-            if (p < 1) vbAnim = requestAnimationFrame(step);
-        }
-        vbAnim = requestAnimationFrame(step);
-    }
-    function zoomToRegion(sigCd) {
-        const b = boundsByCode[sigCd];
-        if (!b) return;
-        const cx = (b[0][0] + b[1][0]) / 2;
-        const cy = (b[0][1] + b[1][1]) / 2;
-        const w = b[1][0] - b[0][0];
-        const h = b[1][1] - b[0][1];
-        // 지역을 살짝 여유있게 담되 과도한 확대는 제한
-        let size = Math.max(w, h) * 2.4;
-        size = Math.max(140, Math.min(size, VIEW_H));
-        const boxH = size;
-        const boxW = size * (VIEW_W / VIEW_H);
-        animateViewBox([cx - boxW / 2, cy - boxH / 2, boxW, boxH]);
-    }
-    function resetZoom() {
-        animateViewBox(FULL_VIEWBOX.slice());
-    }
-
     /* ---------- 지역 선택 → 패널 ---------- */
     // 외부(추천 모달 등)에서 지역 선택 흐름을 재사용할 수 있게 노출
     window.selectRegion = selectRegion;
 
     async function selectRegion(sigCd) {
         if (!sigCd) return;
-        svg.querySelectorAll('.sig-path.selected').forEach((p) => p.classList.remove('selected'));
+        closeCoursePanel();
+        svg.querySelectorAll('.sig-path.selected').forEach((p) => {
+            p.classList.remove('selected', 'selected-ignite');
+        });
         const target = svg.querySelector('.sig-path[data-sig-cd="' + sigCd + '"]');
-        if (target) target.classList.add('selected');
+        if (target) {
+            target.classList.add('selected');
+            retrigger(target, 'selected-ignite');
+        }
 
-        zoomToRegion(sigCd); // 해당 지역으로 살짝 이동/강조
+        // 지도를 확대하지 않고, 선택한 순간 지도만 살짝 밀어 패널이 펼쳐지는 여백을 만든다.
+        const mapMain = document.getElementById('map-main');
+        if (mapMain) mapMain.classList.add('region-selected');
+        paintSelectedGlow(sigCd);
+        burstAt(sigCd, Date.now() % 17);
+        const flash = document.getElementById('map-reveal-flash');
+        if (flash) retrigger(flash, 'active');
 
         try {
             const res = await fetch('/api/regions/' + encodeURIComponent(sigCd));
@@ -230,10 +205,26 @@
         if (wasOpen) retrigger(panel, 'open'); // 이미 열려 있으면 진입 애니메이션 재생
         retrigger(panelBody, 'stagger-fade-in');
     }
+    function openCoursePanel() {
+        const wasOpen = coursePanel.classList.contains('open');
+        coursePanel.classList.add('open');
+        if (wasOpen) retrigger(coursePanel, 'open');
+        retrigger(coursePanelBody, 'stagger-fade-in');
+    }
+    function closeCoursePanel() {
+        if (!coursePanel) return;
+        coursePanel.classList.remove('open');
+    }
     function closePanel() {
         panel.classList.remove('open');
-        svg.querySelectorAll('.sig-path.selected').forEach((p) => p.classList.remove('selected'));
-        resetZoom();
+        closeCoursePanel();
+        const mapMain = document.getElementById('map-main');
+        if (mapMain) mapMain.classList.remove('region-selected');
+        svg.querySelectorAll('.sig-path.selected').forEach((p) => {
+            p.classList.remove('selected', 'selected-ignite');
+        });
+        const selectedGlow = document.getElementById('map-selected-glow');
+        if (selectedGlow) selectedGlow.textContent = '';
         showPicks(true);   // 선택 해제 → 다시 제안을 보여준다
     }
 
@@ -280,11 +271,10 @@
     }
 
     function pickCard(c) {
-        const a = document.createElement('a');
-        a.href = '/course?sigCd=' + encodeURIComponent(c.sigCd)
-            + (c.courseId ? '&courseId=' + encodeURIComponent(c.courseId) : '');
+        const a = document.createElement('button');
+        a.type = 'button';
         a.className = 'course-pick-card group bg-surface border-2 border-border rounded-xl overflow-hidden '
-                    + 'hover:border-primary hover:-translate-y-[2px] transition-all duration-300';
+                    + 'hover:border-primary hover:-translate-y-[2px] transition-all duration-300 text-left w-full';
         a.setAttribute('data-sig-cd', c.sigCd);
         a.setAttribute('aria-label', (c.courseTitle || '추천 코스') + ' 코스 열기');
 
@@ -330,7 +320,49 @@
             const p = svg && svg.querySelector('.sig-path[data-sig-cd="' + c.sigCd + '"]');
             if (p) p.classList.remove('course-preview');
         });
+        a.addEventListener('click', () => selectCourse(c));
         return a;
+    }
+
+    function selectCourse(c) {
+        if (!c || !c.sigCd) return;
+        closePanel();
+        svg.querySelectorAll('.sig-path.selected').forEach((p) => p.classList.remove('selected', 'selected-ignite'));
+        const target = svg.querySelector('.sig-path[data-sig-cd="' + c.sigCd + '"]');
+        if (target) {
+            target.classList.add('selected');
+            retrigger(target, 'selected-ignite');
+        }
+        const mapMain = document.getElementById('map-main');
+        if (mapMain) mapMain.classList.add('region-selected');
+        paintSelectedGlow(c.sigCd);
+        burstAt(c.sigCd, Date.now() % 17);
+        const flash = document.getElementById('map-reveal-flash');
+        if (flash) retrigger(flash, 'active');
+
+        document.getElementById('course-preview-title').textContent = c.courseTitle || c.name || '추천 코스';
+        document.getElementById('course-preview-location').textContent = (c.province || '') + (c.name ? ' · ' + c.name : '');
+        document.getElementById('course-preview-reason').textContent = c.reason || '당신이 남긴 여행 기록의 결을 바탕으로 고른 코스예요.';
+        document.getElementById('course-preview-description').textContent = c.courseSubtitle || c.description || '코스의 경유지를 따라 지역의 이야기를 발견해보세요.';
+        const image = document.getElementById('course-preview-image');
+        if (c.courseImage || c.image) {
+            image.src = c.courseImage || c.image;
+            image.alt = c.courseTitle || c.name || '추천 코스 사진';
+            image.classList.remove('hidden');
+        } else image.classList.add('hidden');
+        const stops = document.getElementById('course-preview-stops');
+        stops.innerHTML = '';
+        (c.courseStops || []).forEach((stop, index) => {
+            const row = el('div', 'flex items-start gap-3 p-3 bg-surface-alt border border-border rounded-lg');
+            row.appendChild(el('span', 'w-6 h-6 rounded-full bg-accent-soft text-primary flex items-center justify-center font-semibold text-xs shrink-0', String(index + 1)));
+            row.appendChild(el('span', 'font-body-main text-caption text-text-primary leading-relaxed', stop));
+            stops.appendChild(row);
+        });
+        const go = document.getElementById('course-preview-go');
+        go.href = '/course?sigCd=' + encodeURIComponent(c.sigCd)
+            + (c.courseId ? '&courseId=' + encodeURIComponent(c.courseId) : '');
+        openCoursePanel();
+        showPicks(false);
     }
 
     async function initPicks() {
@@ -367,6 +399,37 @@
             });
             form.classList.remove('hidden');
         }
+
+        // 추천 코스가 로드되면 항상 목록을 일정한 속도로 자동 순환한다.
+        const scroller = document.getElementById('picks-scroll');
+        const picks = document.getElementById('my-picks');
+        if (scroller && picks) {
+            picks.classList.add('auto-reveal');
+            startPicksAutoScroll(scroller, picks);
+        }
+    }
+
+    function startPicksAutoScroll(scroller, picks) {
+        const list = document.getElementById('picks-list');
+        if (!list || list.dataset.autoLoop === 'true') return;
+        const cards = Array.from(list.children);
+        if (cards.length < 2) return;
+
+        // scrollTop은 absolute/flex 조합에서 브라우저마다 viewport 계산 시점이 달라
+        // 값만 변하고 화면이 안 움직일 수 있다. 동일한 카드 묶음을 한 번 더 붙여
+        // CSS transform으로 끊김 없이 순환시키면 레이아웃과 무관하게 항상 보인다.
+        const loopDistance = list.scrollHeight;
+        cards.forEach((card) => {
+            const clone = card.cloneNode(true);
+            clone.setAttribute('aria-hidden', 'true');
+            clone.querySelectorAll('a, button').forEach((node) => {
+                node.setAttribute('tabindex', '-1');
+            });
+            list.appendChild(clone);
+        });
+        list.dataset.autoLoop = 'true';
+        list.style.setProperty('--picks-loop-distance', loopDistance + 'px');
+        list.classList.add('picks-auto-track');
     }
 
     /* ---------- 무작위로 한 곳 보기 (룰렛) ----------
@@ -461,6 +524,8 @@
         svg = document.getElementById('korea-map');
         panel = document.getElementById('region-panel');
         panelBody = document.getElementById('panel-body');
+        coursePanel = document.getElementById('course-preview-panel');
+        coursePanelBody = document.getElementById('course-preview-body');
         if (!svg || !panel) return;
 
         initSearch();
@@ -469,6 +534,8 @@
 
         const closeBtn = document.getElementById('panel-close');
         if (closeBtn) closeBtn.addEventListener('click', closePanel);
+        const courseCloseBtn = document.getElementById('course-preview-close');
+        if (courseCloseBtn) courseCloseBtn.addEventListener('click', closePanel);
 
         const shuffle = document.getElementById('map-shuffle');
         if (shuffle) shuffle.addEventListener('click', pickRandom);
@@ -695,6 +762,28 @@
             clone.setAttribute('stroke', 'none');
             layer.appendChild(clone);
         });
+    }
+
+    /** 선택한 지역만 별도 광원으로 유지한다. 추천 후보의 glow 레이어와 섞이지 않게 분리한다. */
+    function paintSelectedGlow(sigCd) {
+        const layer = document.getElementById('map-selected-glow');
+        if (!layer) return;
+        layer.textContent = '';
+        const src = svg.querySelector('#map-base .sig-path[data-sig-cd="' + sigCd + '"]');
+        if (!src) return;
+        const css = getComputedStyle(document.documentElement);
+        const color = (css.getPropertyValue('--glow-color') || '#FFC661').trim();
+        const blur = (css.getPropertyValue('--glow-blur') || '7').trim();
+        const opacity = (css.getPropertyValue('--glow-opacity') || '0.85').trim();
+        const blurNode = document.getElementById('discovery-glow-blur');
+        if (blurNode) blurNode.setAttribute('stdDeviation', String(Number(blur) + 2));
+        layer.setAttribute('opacity', Math.min(1, Number(opacity) + 0.12));
+        const clone = document.createElementNS(SVG_NS, 'path');
+        clone.setAttribute('d', src.getAttribute('d'));
+        clone.setAttribute('fill', color);
+        clone.setAttribute('stroke', '#FFF4C8');
+        clone.setAttribute('stroke-width', '2');
+        layer.appendChild(clone);
     }
 
     /**

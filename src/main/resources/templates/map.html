@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="light" lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Sumeun · 지역 탐색')}"></head>
+<head th:replace="~{fragments/layout :: head('여행페이지 · 지역 탐색')}"></head>
 <body class="bg-background text-text-primary min-h-screen flex flex-col font-body-main antialiased selection:bg-accent-soft selection:text-primary">
 
 <!-- 공통 상단 네비게이션 -->
@@ -40,6 +40,7 @@
                     </defs>
                     <g id="map-base"></g>
                     <g id="map-glow" filter="url(#discovery-glow)" aria-hidden="true"></g>
+                    <g id="map-selected-glow" filter="url(#discovery-glow)" aria-hidden="true"></g>
                     <g id="map-sparks" aria-hidden="true"></g>
                 </svg>
                 <div id="map-reveal-flash" aria-hidden="true"></div>
@@ -56,13 +57,13 @@
                      지금은 사용자가 쓴 다이어리에서 읽은 취향으로 채운다.
                      아무것도 안 썼으면 쓰러 가는 문만 남는다. -->
                 <aside id="my-picks"
-                       class="hidden xl:flex absolute left-card-padding top-24 bottom-card-padding w-[280px] flex-col transition-opacity duration-300">
+                       class="hidden xl:flex absolute left-card-padding top-24 bottom-card-padding w-[280px] flex-col min-h-0 transition-opacity duration-300">
                     <div class="flex items-center gap-1.5 mb-1 shrink-0">
                         <span class="material-symbols-outlined text-primary text-[18px]">explore</span>
                         <span class="font-card-title text-card-title text-text-primary">당신의 글이 부른 코스</span>
                     </div>
                     <p id="picks-basis" class="font-caption text-caption text-text-muted mb-2 shrink-0"></p>
-                    <div id="picks-scroll" class="flex-1 overflow-y-auto no-scrollbar pr-1">
+                    <div id="picks-scroll" class="flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1">
                         <div id="picks-list" class="flex flex-col gap-3"></div>
 
                         <!-- 함께 고르기 — 후보가 둘 이상일 때만 map.js 가 보여준다.
@@ -159,6 +160,46 @@
                 </div>
             </div>
         </section>
+
+        <!-- ===== 추천 코스 미리보기 패널(코스 선택 시 슬라이드 인) ===== -->
+        <aside id="course-preview-panel" class="region-panel md:w-[440px] w-full h-full bg-surface border-l border-border">
+            <div class="flex justify-between items-start p-card-padding border-b border-border bg-surface shrink-0">
+                <div>
+                    <span class="font-caption text-caption text-primary">당신의 글이 부른 코스</span>
+                    <h1 id="course-preview-title" class="font-display-title text-display-title text-primary mt-1">추천 코스</h1>
+                    <p id="course-preview-location" class="font-body-main text-caption text-text-muted"></p>
+                </div>
+                <button id="course-preview-close" type="button" aria-label="닫기"
+                        class="text-text-muted hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-alt">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="course-preview-body" class="flex-1 overflow-y-auto p-card-padding bg-surface stagger-fade-in">
+                <img id="course-preview-image" class="hidden w-full h-[190px] object-cover rounded-lg border border-border mb-5" alt="" loading="lazy"/>
+                <div class="bg-accent-soft border border-border rounded-lg p-5 mb-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
+                        <span class="font-section-title text-card-title text-primary">이 코스를 추천한 이유</span>
+                    </div>
+                    <p id="course-preview-reason" class="font-body-main text-body-main text-text-primary leading-relaxed"></p>
+                </div>
+                <div class="mb-5">
+                    <h2 class="font-section-title text-card-title text-primary mb-3">코스 설명</h2>
+                    <p id="course-preview-description" class="font-body-main text-body-main text-text-muted leading-relaxed"></p>
+                </div>
+                <div>
+                    <h2 class="font-section-title text-card-title text-primary mb-3">여행 경유지</h2>
+                    <div id="course-preview-stops" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+            <div class="p-4 bg-surface border-t border-border shrink-0">
+                <a id="course-preview-go" href="#"
+                   class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
+                    <span class="material-symbols-outlined">route</span>
+                    <span>이 코스 선택하기</span>
+                </a>
+            </div>
+        </aside>
 
         <!-- ===== 지역 패널(기본 숨김, 지역 선택 시 슬라이드 인) ===== -->
         <aside id="region-panel" class="region-panel md:w-[440px] w-full h-full bg-surface border-l border-border">

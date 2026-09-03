@@ -1,6 +1,7 @@
 package com.sunz.hidden_travel.controller;
 
 import com.sunz.hidden_travel.controller.dto.RegionBundle;
+import com.sunz.hidden_travel.controller.dto.RegionPreview;
 import com.sunz.hidden_travel.service.RegionQueryService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,5 +27,11 @@ public class RegionController {
     @GetMapping("/{sigCd}")
     public RegionBundle region(@PathVariable String sigCd) {
         return regionQueryService.bundle(sigCd);
+    }
+
+    /** GET /api/regions/{sigCd}/preview → 지도 선택 직후의 작은 지역 카드 */
+    @GetMapping("/{sigCd}/preview")
+    public RegionPreview preview(@PathVariable String sigCd) {
+        return regionQueryService.preview(sigCd);
     }
 }
