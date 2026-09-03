@@ -556,6 +556,12 @@
         const shuffle = document.getElementById('map-shuffle');
         if (shuffle) shuffle.addEventListener('click', pickRandom);
 
+        // 지역 상세의 "지도에서 보기"로 들어오면 해당 지역 카드를 바로 펼친다.
+        const initialSigCd = new URLSearchParams(window.location.search).get('sigCd');
+        if (initialSigCd && boundsByCode[initialSigCd]) {
+            await selectRegion(initialSigCd);
+        }
+
         // 지도 진입 시 현재 위치 수집(부가 기능 · 거부해도 무시)
         if (typeof window.getCurrentPositionSafe === 'function') {
             window.getCurrentPositionSafe();

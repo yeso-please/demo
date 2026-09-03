@@ -160,7 +160,8 @@
                     <span th:text="${shop.address}">주소</span>
                 </p>
                 <div class="absolute inset-0 bg-surface/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <a class="text-primary font-body-main border-b border-primary hover:text-accent-hover pb-0.5" href="#">지도에서 보기</a>
+                    <a class="text-primary font-body-main border-b border-primary hover:text-accent-hover pb-0.5"
+                       th:href="@{/map(sigCd=${sigCd})}">지도에서 보기</a>
                 </div>
             </div>
         </div>
