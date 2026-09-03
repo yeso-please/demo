@@ -28,7 +28,6 @@ public class PageController {
 
     private final DummyRegionData regionData;
     private final RegionQueryService regionQueryService;
-    private final com.sunz.hidden_travel.user.CurrentUserService currentUserService;
     private final com.sunz.hidden_travel.service.RegionIntroService regionIntroService;
 
     /** 카카오맵 JavaScript 키 (출발지 역지오코딩용, 없으면 목적지만 길찾기) */
@@ -36,11 +35,9 @@ public class PageController {
     private String kakaoJsKey;
 
     public PageController(DummyRegionData regionData, RegionQueryService regionQueryService,
-                          com.sunz.hidden_travel.user.CurrentUserService currentUserService,
                           com.sunz.hidden_travel.service.RegionIntroService regionIntroService) {
         this.regionData = regionData;
         this.regionQueryService = regionQueryService;
-        this.currentUserService = currentUserService;
         this.regionIntroService = regionIntroService;
     }
 
@@ -53,14 +50,16 @@ public class PageController {
        라우팅
        ========================================================= */
 
-    /**
-     * 로그인 화면 (헤더/푸터 숨김).
-     * Spring Security 의 loginPage 이기도 하다 — 로그인 처리는 /login(POST) 필터가 담당.
-     * 이미 로그인한 사용자는 지도로 보낸다.
-     */
+    /** 첫 진입 화면 — 여행 초대 편지. */
     @GetMapping("/")
+    public String invitation() {
+        return "onboarding";
+    }
+
+    /** 로그인 화면 (헤더/푸터 숨김). 로그인 처리는 /login(POST) 필터가 담당한다. */
+    @GetMapping("/login")
     public String login() {
-        return currentUserService.currentId() != null ? "redirect:/map" : "login";
+        return "login";
     }
 
     /* 회원가입 화면은 AuthController 가 담당한다(가입 처리와 같은 곳에 두기 위해) */

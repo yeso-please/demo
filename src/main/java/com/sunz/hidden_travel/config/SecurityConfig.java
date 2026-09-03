@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/geo/**", "/images/**", "/uploads/**",
                                  "/favicon.ico", "/error").permitAll()
                 // --- 로그인 없이 볼 수 있는 화면 ---
-                .requestMatchers("/", "/signup", "/onboarding", "/onboarding/**", "/map", "/trip/**", "/trips/**",
+                .requestMatchers("/", "/login", "/signup", "/onboarding", "/onboarding/**", "/map", "/trip/**", "/trips/**",
                                  "/region", "/region/**", "/reviews", "/chat").permitAll()
                 // 다이어리 상세는 공개 편이면 누구나 읽는다(비공개 편은 서비스가 걸러낸다)
                 .requestMatchers(HttpMethod.GET, "/diary/*").permitAll()
@@ -72,18 +72,18 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                .loginPage("/")                 // 기존 로그인 화면 재사용
+                .loginPage("/login")            // 편지 첫 화면과 로그인 화면 분리
                 .loginProcessingUrl("/login")   // 폼 action
                 .usernameParameter("email")
                 .passwordParameter("password")
                 .defaultSuccessUrl("/map", true)
-                .failureUrl("/?error")
+                .failureUrl("/login?error")
                 .permitAll()
             )
             .logout(logout -> logout
                 // CSRF 가 켜져 있으므로 기본적으로 POST /logout 만 받는다
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("/?logout")
+                .logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
