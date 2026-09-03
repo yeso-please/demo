@@ -1,4 +1,4 @@
-# 숨은 여행
+# 여행페이지
 
 방문했던 여행의 기억을 짧은 글로 남기면, 비슷한 결을 가진 새로운 국내 여행 코스를 발견하도록 돕는 Spring Boot 프로젝트입니다.
 
@@ -53,6 +53,7 @@
 $headers = @{ "X-Admin-Token" = "발급받은_관리자_토큰" }  # 로컬에서 admin.token을 채웠다면 필요
 Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour -Headers $headers
 Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour/course-points -Headers $headers
+Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour/course-overviews -Headers $headers
 Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/goodprice -Headers $headers
 ```
 
@@ -62,7 +63,7 @@ TourAPI 일일 호출 한도 때문에 전국 데이터가 한 번에 끝나지 
 Invoke-RestMethod http://localhost:8080/admin/sync/tour/budget -Headers $headers
 ```
 
-상세 설명 보강은 매일 오전 4시에 실행되며, 수동 실행과 진행률 확인도 가능합니다.
+관광지 상세 설명 보강은 매일 오전 4시에 실행되며, 수동 실행과 진행률 확인도 가능합니다. 코스 소개문은 TourAPI 호출 한도가 회복된 날 `course-overviews`를 다시 실행하면 비어 있는 항목만 이어서 채웁니다.
 
 ```powershell
 Invoke-RestMethod -Method Post 'http://localhost:8080/admin/sync/tour/details?limit=5' -Headers $headers
