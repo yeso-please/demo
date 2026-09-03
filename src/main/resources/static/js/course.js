@@ -484,12 +484,40 @@
         return html;
     }
 
+    /* ---------- 공식 코스 사진 갤러리 ---------- */
+    function initSourceGallery() {
+        const gallery = document.querySelector('.course-source-gallery');
+        if (!gallery) return;
+        const main = gallery.querySelector('.course-source-gallery__main');
+        if (!main) return;
+
+        gallery.addEventListener('click', (e) => {
+            const thumb = e.target.closest('.course-gallery-thumb');
+            if (!thumb) return;
+            const nextSrc = thumb.getAttribute('data-gallery-src');
+            if (!nextSrc || main.getAttribute('src') === nextSrc) return;
+
+            main.classList.add('opacity-40');
+            main.onload = () => main.classList.remove('opacity-40');
+            main.onerror = () => main.classList.remove('opacity-40');
+            main.src = nextSrc;
+            gallery.querySelectorAll('.course-gallery-thumb').forEach((button) => {
+                const active = button === thumb;
+                button.classList.toggle('is-active', active);
+                button.classList.toggle('ring-2', active);
+                button.classList.toggle('ring-primary', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+        });
+    }
+
     /* ---------- 초기화 ---------- */
     function init() {
         timeline = document.getElementById('course-timeline');
         emptyState = document.getElementById('empty-state');
         candidateSide = document.getElementById('candidate-side');
         if (!timeline) return;
+        initSourceGallery();
 
         // 후보 [+ 담기] / [자세히] — 후보 목록에는 주소가 이미 보이므로 상세엔 넣지 않는다
         if (candidateSide) candidateSide.addEventListener('click', (e) => {

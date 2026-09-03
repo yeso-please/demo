@@ -46,11 +46,25 @@
 
         <article th:if="${data.recommendedCourseTitle != null}"
                  class="course-source-card bg-accent-soft border border-border rounded-lg overflow-hidden">
-            <div th:if="${data.officialCourseGuide.hasImages()}" class="grid grid-cols-4 gap-1 h-[144px] bg-surface-alt">
-                <img th:each="image, stat : ${data.officialCourseGuide.images}"
-                     th:src="${image}" th:alt="|${data.recommendedCourseTitle} 사진 ${stat.count}|"
-                     th:class="${stat.first} ? 'col-span-3 row-span-2 w-full h-full object-cover' : 'w-full h-[46px] object-cover'"
-                     loading="lazy"/>
+            <div th:if="${data.officialCourseGuide.hasImages()}"
+                 class="course-source-gallery relative h-[210px] overflow-hidden bg-surface-alt">
+                <img class="course-source-gallery__main absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
+                     th:src="${data.officialCourseGuide.images[0]}"
+                     th:alt="|${data.recommendedCourseTitle} 대표 사진|"/>
+                <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/55 to-transparent pointer-events-none"></div>
+                <span class="absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-1 font-caption text-[11px] text-white backdrop-blur-sm"
+                      th:text="|사진 ${data.officialCourseGuide.images.size()}장|">사진 4장</span>
+                <div th:if="${data.officialCourseGuide.images.size() > 1}"
+                     class="absolute left-3 right-3 bottom-3 flex gap-2 overflow-x-auto no-scrollbar"
+                     aria-label="코스 사진 선택">
+                    <button th:each="image, stat : ${data.officialCourseGuide.images}"
+                            type="button"
+                            class="course-gallery-thumb relative w-[68px] h-[46px] shrink-0 overflow-hidden rounded-md border-2 border-white/60 bg-surface-alt shadow-sm transition-all hover:-translate-y-0.5 hover:border-white"
+                            th:classappend="${stat.first} ? ' is-active ring-2 ring-primary' : ''"
+                            th:attr="data-gallery-src=${image},aria-label=|${stat.count}번째 사진 보기|,aria-pressed=${stat.first}">
+                        <img th:src="${image}" alt="" class="w-full h-full object-cover" loading="lazy"/>
+                    </button>
+                </div>
             </div>
             <div class="p-4">
                 <div class="flex items-center justify-between gap-2">
