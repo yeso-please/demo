@@ -15,7 +15,8 @@
             <span class="invite-route__dot invite-route__dot--end"></span>
         </div>
 
-        <div class="invite-card">
+        <div class="invite-letter-flight" aria-label="편지가 도착하는 장면">
+            <div class="invite-card">
             <div class="invite-card__topline">
                 <span>여행페이지 · 초대장</span>
                 <span>01 / 12</span>
@@ -44,6 +45,7 @@
                 <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
             </a>
             <p class="invite-card__hint">가입 없이 시작할 수 있어요 · 약 1분</p>
+            </div>
         </div>
 
         <a th:href="@{/map}" class="invite-skip">편지는 나중에 열어볼게요 <span aria-hidden="true">↗</span></a>
@@ -98,6 +100,40 @@
     .invite-route__line { position: absolute; width: 180px; height: 90px; left: calc(50% + 160px); top: 23%; border-top: 1px dashed var(--accent); border-radius: 50%; transform: rotate(20deg); }
     .invite-route__dot { position: absolute; left: calc(50% + 155px); top: calc(23% - 4px); width: 8px; height: 8px; border: 2px solid var(--accent); border-radius: 50%; }
     .invite-route__dot--end { left: calc(50% + 320px); top: 30%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+    .invite-letter-flight {
+        position: relative;
+        width: min(100%, 440px);
+        animation: letter-flight 1050ms cubic-bezier(.12,.78,.24,1) both;
+        transform-origin: 50% 90%;
+    }
+    .invite-letter-flight::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        left: -48px;
+        top: 28px;
+        width: 86px;
+        height: 58px;
+        border: 1px solid rgba(241, 205, 143, .6);
+        border-radius: 4px;
+        background: linear-gradient(145deg, #d8ad72, #9e673d);
+        box-shadow: 0 12px 20px rgba(0,0,0,.25);
+        transform: rotate(-24deg) scale(.82);
+        opacity: 0;
+        animation: envelope-sweep 1050ms cubic-bezier(.16,.84,.3,1) both;
+    }
+    .invite-letter-flight::after {
+        content: "✦  ·  ·  ·";
+        position: absolute;
+        left: -82px;
+        top: 18px;
+        color: rgba(243, 196, 119, .76);
+        font-size: 15px;
+        letter-spacing: .35em;
+        opacity: 0;
+        transform: rotate(-17deg);
+        animation: letter-trail 1050ms ease-out both;
+    }
     .invite-card {
         position: relative;
         width: min(100%, 440px);
@@ -108,7 +144,7 @@
         border: 1px solid rgba(255, 244, 218, .75);
         box-shadow: 0 28px 70px rgba(0, 0, 0, .48), 0 2px 0 rgba(255,255,255,.2) inset;
         transform: rotate(-1.2deg);
-        animation: invite-arrive 700ms cubic-bezier(.16,.84,.3,1) both;
+        animation: letter-open 1050ms cubic-bezier(.16,.84,.3,1) both;
     }
     .invite-card::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(125, 81, 43, .28); pointer-events: none; }
     .invite-card__topline { display: flex; justify-content: space-between; position: relative; color: #91602f; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
@@ -127,14 +163,38 @@
     .invite-card__hint { position: relative; margin-top: 15px; color: #a08069; font-size: 11px; }
     .invite-skip { margin-top: 24px; color: rgba(245, 235, 221, .62); font-size: 12px; transition: color 180ms ease; }
     .invite-skip:hover { color: var(--accent); }
-    @keyframes invite-arrive { from { opacity: 0; transform: translateY(22px) rotate(2deg) scale(.97); } to { opacity: 1; transform: translateY(0) rotate(-1.2deg) scale(1); } }
+    @keyframes letter-flight {
+        0% { opacity: 0; transform: translate(58vw, -46vh) rotate(18deg) scale(.36); }
+        58% { opacity: 1; transform: translate(-18px, 10px) rotate(-7deg) scale(1.02); }
+        76% { transform: translate(7px, -4px) rotate(2deg) scale(1); }
+        100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    @keyframes letter-open {
+        0%, 48% { opacity: 0; transform: rotate(-8deg) scale(.78); filter: brightness(1.18); }
+        72% { opacity: 1; transform: rotate(1.8deg) scale(1.015); }
+        100% { opacity: 1; transform: rotate(-1.2deg) scale(1); filter: brightness(1); }
+    }
+    @keyframes envelope-sweep {
+        0% { opacity: 0; transform: translate(34vw, -28vh) rotate(-48deg) scale(.35); }
+        42% { opacity: .95; }
+        78% { opacity: .45; transform: translate(14px, 4px) rotate(-24deg) scale(.82); }
+        100% { opacity: 0; transform: translate(100px, 12px) rotate(-18deg) scale(.7); }
+    }
+    @keyframes letter-trail {
+        0%, 18% { opacity: 0; transform: translate(28vw, -25vh) rotate(-17deg); }
+        42% { opacity: .9; }
+        76%, 100% { opacity: 0; transform: translate(30px, 6px) rotate(-17deg); }
+    }
     @media (max-width: 560px) {
         .invite-landing { margin: -32px -16px -32px; padding: 34px 14px 30px; min-height: calc(100vh - 24px); }
         .invite-card { padding: 22px 24px 20px; }
         .invite-card__seal { margin-top: 22px; }
         .invite-route { opacity: .25; }
     }
-    @media (prefers-reduced-motion: reduce) { .invite-card { animation: none; } .invite-cta { transition: none; } }
+    @media (prefers-reduced-motion: reduce) {
+        .invite-letter-flight, .invite-letter-flight::before, .invite-letter-flight::after, .invite-card { animation: none; }
+        .invite-cta { transition: none; }
+    }
 
 </style>
 </body>
