@@ -57,6 +57,9 @@
     --font-sans: 'Pretendard', sans-serif;
     --font-serif: 'Gowun Batang', serif;
 
+    /* 여행페이지 워드마크 — 편지의 제목처럼 또렷하고 오래 남는 인상 */
+    --font-wordmark: 'Gowun Batang', serif;
+
     --fs-page: 36px;
     --fs-section: 22px;
     --fs-card: 17px;
@@ -246,6 +249,32 @@ body {
     stroke: var(--accent-hover);
     stroke-width: 1.8px;
     filter: drop-shadow(0 0 7px var(--glow-color)) drop-shadow(0 0 15px rgba(255, 198, 97, .42));
+}
+
+/* 공통 브랜드 표기 */
+.brand-wordmark {
+    position: relative;
+    display: inline-block;
+    font-family: var(--font-wordmark);
+    font-weight: 700;
+    letter-spacing: -.12em;
+    line-height: 1.2;
+    color: var(--text-primary, var(--text));
+    background: linear-gradient(120deg, var(--primary, #4f668c), var(--accent-hover, #b87345));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.brand-wordmark::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 2%;
+    bottom: -.18em;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent, #d08a5d), transparent);
+    opacity: .68;
 }
 @keyframes selection-ignite {
     0%   { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: .85px; filter: none; }

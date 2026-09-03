@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('여행페이지 · 함께 고르기')}"></head>
 <body class="bg-background text-text-primary min-h-screen font-body-main antialiased">
 <header class="trip-room-header">
-    <a href="/map" class="trip-room-brand"><span th:replace="~{fragments/brand :: logoMark(28)}"></span><span>여행페이지</span></a>
+    <a href="/map" class="trip-room-brand"><span th:replace="~{fragments/brand :: logoMark(28)}"></span><span class="brand-wordmark">여행페이지</span></a>
     <div class="trip-room-title"><span class="room-status" th:text="${view.room.status == 'CONFIRMED'} ? '여행 확정' : '의견 모으는 중'">의견 모으는 중</span><strong th:text="${view.room.title}">여행방</strong></div>
     <button type="button" class="icon-action" data-copy-link title="공유 링크 복사"><span class="material-symbols-outlined">share</span></button>
 </header>

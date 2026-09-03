@@ -131,7 +131,7 @@
         <!-- Logo: 발자국 마크 + 워드마크 -->
         <a th:href="@{/map}" class="site-logo" aria-label="여행페이지 홈">
             <span th:replace="~{fragments/brand :: logoMark(30)}"></span>
-            <span class="site-logo__text">여행페이지</span>
+            <span class="site-logo__text brand-wordmark">여행페이지</span>
         </a>
 
         <!-- Region search -->
@@ -188,7 +188,7 @@
             </form>
         </div>
         <div th:if="${currentUser == null}" class="site-account">
-            <a th:href="@{/}" class="site-nav__link">로그인</a>
+            <a th:href="@{/login}" class="site-nav__link">로그인</a>
             <a th:href="@{/signup}" class="btn-primary site-signup-btn">회원가입</a>
         </div>
     </div>
