@@ -45,26 +45,31 @@
 
 ## 관광 데이터 채우기
 
+`/admin/**`는 `X-Admin-Token` 헤더가 필요합니다(`config/application-secret.yaml`의 `admin.token`, 배포 환경은 `ADMIN_TOKEN` 환경변수). 로컬에서 `admin.token`을 비워두면 검사를 건너뜁니다.
+
 서버를 실행한 상태에서 PowerShell로 호출합니다.
 
 ```powershell
-Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour
-Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour/course-points
-Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/goodprice
+$headers = @{ "X-Admin-Token" = "발급받은_관리자_토큰" }  # 로컬에서 admin.token을 채웠다면 필요
+Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour -Headers $headers
+Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/tour/course-points -Headers $headers
+Invoke-RestMethod -Method Post http://localhost:8080/admin/sync/goodprice -Headers $headers
 ```
 
 TourAPI 일일 호출 한도 때문에 전국 데이터가 한 번에 끝나지 않을 수 있습니다. 남은 호출량은 다음 주소에서 확인합니다.
 
 ```powershell
-Invoke-RestMethod http://localhost:8080/admin/sync/tour/budget
+Invoke-RestMethod http://localhost:8080/admin/sync/tour/budget -Headers $headers
 ```
 
 상세 설명 보강은 매일 오전 4시에 실행되며, 수동 실행과 진행률 확인도 가능합니다.
 
 ```powershell
-Invoke-RestMethod -Method Post 'http://localhost:8080/admin/sync/tour/details?limit=5'
-Invoke-RestMethod http://localhost:8080/admin/sync/tour/details/progress
+Invoke-RestMethod -Method Post 'http://localhost:8080/admin/sync/tour/details?limit=5' -Headers $headers
+Invoke-RestMethod http://localhost:8080/admin/sync/tour/details/progress -Headers $headers
 ```
+
+배포된 서비스(Render)에 대해 실행할 때는 `http://localhost:8080` 대신 배포 URL을 쓰고, `ADMIN_TOKEN`으로 설정한 값을 헤더에 넣습니다.
 
 데이터 규모와 제약은 [docs/DATA.md](docs/DATA.md), 추천 설계는 [docs/PRD.md](docs/PRD.md)를 먼저 확인해 주세요.
 

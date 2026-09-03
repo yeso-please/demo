@@ -17,3 +17,8 @@ services:
         sync: false
       - key: KAKAO_MOBILITY_REST_API_KEY
         sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      # H2 콘솔은 배포 환경에서 반드시 꺼야 한다 (전체 DB가 웹에 노출됨).
+      - key: H2_CONSOLE_ENABLED
+        value: "false"
