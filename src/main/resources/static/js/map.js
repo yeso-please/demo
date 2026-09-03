@@ -270,6 +270,20 @@
         return d.innerHTML;
     }
 
+    function bindPickCard(card, candidate) {
+        card.addEventListener('mouseenter', () => {
+            const p = svg && svg.querySelector('.sig-path[data-sig-cd="' + candidate.sigCd + '"]');
+            if (p) p.classList.add('course-preview');
+        });
+        card.addEventListener('mouseleave', () => {
+            const p = svg && svg.querySelector('.sig-path[data-sig-cd="' + candidate.sigCd + '"]');
+            if (p) p.classList.remove('course-preview');
+        });
+        card.addEventListener('click', () => selectCourse(candidate));
+        card._courseCandidate = candidate;
+        return card;
+    }
+
     function pickCard(c) {
         const a = document.createElement('button');
         a.type = 'button';
@@ -312,16 +326,7 @@
             + '</div>';
 
         // 카드에 손을 올리면 그 코스가 놓인 지역만 지도에서 은은하게 응답한다.
-        a.addEventListener('mouseenter', () => {
-            const p = svg && svg.querySelector('.sig-path[data-sig-cd="' + c.sigCd + '"]');
-            if (p) p.classList.add('course-preview');
-        });
-        a.addEventListener('mouseleave', () => {
-            const p = svg && svg.querySelector('.sig-path[data-sig-cd="' + c.sigCd + '"]');
-            if (p) p.classList.remove('course-preview');
-        });
-        a.addEventListener('click', () => selectCourse(c));
-        return a;
+        return bindPickCard(a, c);
     }
 
     function selectCourse(c) {
@@ -418,13 +423,13 @@
         // scrollTop은 absolute/flex 조합에서 브라우저마다 viewport 계산 시점이 달라
         // 값만 변하고 화면이 안 움직일 수 있다. 동일한 카드 묶음을 한 번 더 붙여
         // CSS transform으로 끊김 없이 순환시키면 레이아웃과 무관하게 항상 보인다.
-        const loopDistance = list.scrollHeight;
+        const gap = parseFloat(getComputedStyle(list).rowGap || getComputedStyle(list).gap) || 0;
+        const loopDistance = list.scrollHeight + gap;
         cards.forEach((card) => {
             const clone = card.cloneNode(true);
             clone.setAttribute('aria-hidden', 'true');
-            clone.querySelectorAll('a, button').forEach((node) => {
-                node.setAttribute('tabindex', '-1');
-            });
+            clone.setAttribute('tabindex', '-1');
+            bindPickCard(clone, card._courseCandidate);
             list.appendChild(clone);
         });
         list.dataset.autoLoop = 'true';
