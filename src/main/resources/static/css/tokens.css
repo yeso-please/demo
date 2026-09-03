@@ -4,24 +4,24 @@
    ========================================================= */
 
 :root {
-    /* ----- Color · '밤의 온기' -----
-       차가운 남청 대신 짙은 밤색을 쓴다. 지도에서 켜지는 호박빛과 배경이 같은
-       온도 안에 있어 불빛이 장식이 아니라 실제로 밤을 밝히는 장면처럼 보인다. */
-    --bg: #1B120F;
-    --surface: #281A16;
-    --surface-alt: #35231C;
-    --border: #594034;
+    /* ----- Color · '깊은 밤과 작은 불빛' -----
+       배경은 붉은 갈색이 아닌 깊은 남청으로 두고, 지도와 기록 위의 호박빛만
+       따뜻하게 남긴다. 밤하늘 위에 여행의 흔적이 켜지는 인상을 만든다. */
+    --bg: #111827;
+    --surface: #1A2434;
+    --surface-alt: #243247;
+    --border: #35445A;
     /* 지도 육지면 — 배경보다 뚜렷하게 밝다.
        (밝은 팔레트 시절에는 이 값이 --bg 와 같아서 육지가 아예 보이지 않았다)
        실측: 배경 대비 1.20 이면 덩어리로 뭉쳐 보인다 → 1.6 이상이 되도록 올렸다. */
-    --map-land: #3A281F;
+    --map-land: #2B3A50;
     /* 지도 시군구 경계선.
        어두운 면 위에서는 '밝은 선'을 그어야 하고, 밝은 바탕일 때보다 훨씬 진해야 한다.
        실측: 0.26 은 육지 대비 1.72 로 250개 시군구가 한 덩어리로 보였다.
        0.55 에서 경계가 또렷해지면서도 호박색 빛을 가리지 않는다. */
-    --map-stroke: rgba(222, 177, 119, 0.48);
-    --text: #F5EBDD;
-    --text-muted: #BEAA98;
+    --map-stroke: rgba(166, 190, 218, 0.48);
+    --text: #EEF3F8;
+    --text-muted: #9EADC1;
     /* 강조색 — 박명의 마지막 빛.
        #FFB347 은 대비는 충분했지만(8.96:1) 배경과 따로 놀았다. 원인은 대비가 아니라
        채도였다: 배경이 HSL(218°, 30%, 15%) 인데 강조색만 채도 100% 라 사탕색으로 튀었다.
@@ -31,14 +31,14 @@
     --accent-hover: #DEA653;
     /* 칩 배경. 남색에 금색을 섞으면 색이 상쇄돼 회색이 된다 —
        섞지 말고 같은 색상각을 어둡게 잡아야 따뜻함이 남는다. */
-    --accent-soft: #4B311D;
-    --accent-line: #765333;
+    --accent-soft: #4B3B24;
+    --accent-line: #80623A;
     /* 강조색 위에 얹는 글자색. 호박색은 밝아서 흰 글씨를 쓰면 대비가 무너진다
        (#FFF 대비 약 1.8:1). 어두운 남청을 얹어야 읽힌다(9.57:1). */
     --on-accent: #24150E;
     --sage: #93C49D;
-    --sage-bg: #23372A;
-    --sage-border: #45624D;
+    --sage-bg: #20362F;
+    --sage-border: #426458;
     /* 어두운 바탕에서는 원래의 진한 빨강이 묻힌다 — 채도·명도를 올린다 */
     --error: #FF8A80;
 
@@ -244,7 +244,20 @@ body {
 .sig-path.selected {
     fill: var(--accent);
     stroke: var(--accent-hover);
-    stroke-width: 1.25px;
+    stroke-width: 1.8px;
+    filter: drop-shadow(0 0 7px var(--glow-color)) drop-shadow(0 0 15px rgba(255, 198, 97, .42));
+}
+@keyframes selection-ignite {
+    0%   { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: .85px; filter: none; }
+    18%  { fill: #FFFFFF; stroke: #FFFFFF; stroke-width: 4px;
+           filter: drop-shadow(0 0 6px #FFFFFF) drop-shadow(0 0 24px var(--glow-color)); }
+    48%  { fill: #FFE9A8; stroke: #FFF8DE; stroke-width: 2.8px;
+           filter: drop-shadow(0 0 12px #FFE7A0) drop-shadow(0 0 28px var(--glow-color)); }
+    100% { fill: var(--accent); stroke: var(--accent-hover); stroke-width: 1.8px;
+           filter: drop-shadow(0 0 7px var(--glow-color)) drop-shadow(0 0 15px rgba(255, 198, 97, .42)); }
+}
+.sig-path.selected-ignite {
+    animation: selection-ignite 1050ms cubic-bezier(.16,.84,.3,1) both;
 }
 /* 룰렛이 훑고 지나가는 순간 — 선택보다 옅어 최종 결과와 구분된다.
    빠르게 바뀌므로 transition 을 끊어 잔상이 남지 않게 한다. */
@@ -303,6 +316,16 @@ body {
     mix-blend-mode: screen;
     transition: opacity 400ms ease;
 }
+#map-selected-glow {
+    mix-blend-mode: screen;
+    opacity: .95;
+    animation: selected-glow-breathe 1250ms ease-in-out infinite alternate;
+    pointer-events: none;
+}
+@keyframes selected-glow-breathe {
+    from { opacity: .64; }
+    to   { opacity: 1; }
+}
 .korea-map.is-revealing #map-glow {
     animation: glow-breathe 900ms ease-in-out infinite alternate;
 }
@@ -335,7 +358,7 @@ body {
     opacity: 0;
     background:
         radial-gradient(circle at 50% 54%, rgba(255, 214, 137, .28), transparent 28%),
-        radial-gradient(circle at 50% 54%, rgba(178, 92, 39, .16), transparent 62%);
+        radial-gradient(circle at 50% 54%, rgba(92, 132, 201, .18), transparent 62%);
 }
 #map-reveal-flash.active {
     animation: map-stage-flash 1700ms ease-out both;
@@ -347,8 +370,9 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
     .sig-path.seed-pulse { animation: none; }
-    .sig-path.discovered, .sig-path.igniting { transition: none; animation: none; }
+    .sig-path.discovered, .sig-path.igniting, .sig-path.selected-ignite { transition: none; animation: none; }
     .map-spark, #map-reveal-flash.active { animation: none; display: none; }
+    #map-selected-glow { animation: none; }
 }
 
 /* 이미 다녀왔다고 고른 지역 — 후보에서 빠졌다는 것만 보이면 된다 */
@@ -366,20 +390,20 @@ body {
 
 .night-map-page {
     background:
-        radial-gradient(circle at 18% 12%, rgba(126, 65, 34, .22), transparent 36%),
-        radial-gradient(circle at 82% 88%, rgba(92, 43, 27, .2), transparent 42%),
+        radial-gradient(circle at 18% 12%, rgba(52, 82, 132, .28), transparent 36%),
+        radial-gradient(circle at 82% 88%, rgba(29, 52, 91, .26), transparent 42%),
         var(--bg);
 }
 .night-map-stage {
     background:
-        radial-gradient(ellipse at 50% 48%, #34231C 0%, #251713 52%, #1B110E 100%) !important;
-    border-color: rgba(222, 166, 83, .34) !important;
-    box-shadow: inset 0 0 90px rgba(0,0,0,.34), 0 22px 70px rgba(0,0,0,.4);
+        radial-gradient(ellipse at 50% 48%, #243653 0%, #18253B 52%, #0E1728 100%) !important;
+    border-color: rgba(151, 177, 220, .3) !important;
+    box-shadow: inset 0 0 90px rgba(0,0,0,.38), 0 22px 70px rgba(0,0,0,.4);
 }
 .night-map-stage #region-search-input {
-    background: rgba(53, 35, 28, .94) !important;
+    background: rgba(36, 50, 71, .94) !important;
     color: var(--text) !important;
-    border-color: rgba(222, 166, 83, .36) !important;
+    border-color: rgba(151, 177, 220, .32) !important;
     box-shadow: 0 10px 28px rgba(0,0,0,.26);
 }
 .night-map-stage #region-search-input::placeholder {
@@ -393,7 +417,7 @@ body {
     box-shadow: 0 16px 36px rgba(0,0,0,.38), 0 0 0 1px rgba(243,196,119,.16);
 }
 .course-pick-shade {
-    background: linear-gradient(to top, rgba(27,18,15,.98), rgba(27,18,15,.3) 58%, rgba(27,18,15,.08));
+    background: linear-gradient(to top, rgba(17,24,39,.98), rgba(17,24,39,.3) 58%, rgba(17,24,39,.08));
 }
 .course-origin-badge {
     display: inline-flex;
@@ -402,7 +426,7 @@ body {
     padding: 2px 7px;
     border: 1px solid rgba(255,232,175,.46);
     border-radius: 999px;
-    background: rgba(27,18,15,.68);
+    background: rgba(17,24,39,.68);
     color: #FFE8AF;
     font-size: 10px;
     line-height: 1.6;

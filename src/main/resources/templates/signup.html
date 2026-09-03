@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Sumeun · 회원가입')}"></head>
+<head th:replace="~{fragments/layout :: head('여행페이지 · 회원가입')}"></head>
 <body class="bg-background text-text-primary min-h-screen flex items-center justify-center p-4 antialiased">
 <!-- Card Container -->
 <div class="bg-surface w-full max-w-[400px] border border-border rounded-xl p-[32px] relative overflow-hidden">
@@ -9,7 +9,7 @@
     <!-- Brand Logo -->
     <div class="flex flex-col items-center text-center mb-8">
         <span th:replace="~{fragments/brand :: logoMark(52)}"></span>
-        <h1 class="font-brand-logo text-[24px] text-text-primary tracking-tight mt-2">숨은여행</h1>
+        <h1 class="font-brand-logo text-[24px] text-text-primary tracking-tight mt-2">여행페이지</h1>
     </div>
     <!-- 가입 실패 안내 -->
     <div th:if="${error}" class="mb-4 border-2 rounded-lg p-3 text-center" style="border-color: var(--error)">

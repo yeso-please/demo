@@ -1,145 +1,141 @@
 <!DOCTYPE html>
 <html class="light" lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Sumeun · 여행 MBTI')}"></head>
+<head th:replace="~{fragments/layout :: head('여행페이지 · 초대장')}"></head>
 <body class="bg-background text-text-primary font-body-main antialiased min-h-screen flex flex-col">
 
 <main class="flex-1 w-full max-w-[560px] mx-auto px-4 py-8 flex flex-col">
 
     <!-- ===== 시작 화면 ===== -->
-    <section id="mbti-intro" class="flex-1 flex flex-col items-center justify-center text-center gap-5">
-        <span th:replace="~{fragments/brand :: logoMark(64)}"></span>
-        <div>
-            <h1 class="font-display-title text-display-title text-text-primary mb-2">나의 여행 MBTI</h1>
-            <p class="font-body-main text-body-main text-text-muted leading-relaxed">
-                12개 질문으로 알아보는 나의 여행 성향.<br/>
-                결과에 맞춰 어울리는 여행지를 추천해 드려요.
+    <section id="mbti-intro" class="invite-landing" aria-labelledby="invite-title">
+        <div class="ink-splash ink-splash--one" aria-hidden="true"></div>
+        <div class="ink-splash ink-splash--two" aria-hidden="true"></div>
+        <div class="invite-route" aria-hidden="true">
+            <span class="invite-route__dot"></span>
+            <span class="invite-route__line"></span>
+            <span class="invite-route__dot invite-route__dot--end"></span>
+        </div>
+
+        <div class="invite-card">
+            <div class="invite-card__topline">
+                <span>여행페이지 · 초대장</span>
+                <span>01 / 12</span>
+            </div>
+
+            <div class="invite-card__seal" aria-hidden="true">
+                <span th:replace="~{fragments/brand :: logoMark(48)}"></span>
+            </div>
+
+            <p class="invite-card__eyebrow">A SMALL INVITATION FOR YOU</p>
+            <h1 id="invite-title" class="invite-card__title">당신의 취향에 맞는<br/><em>여행지에 초대합니다</em></h1>
+            <div class="invite-card__rule" aria-hidden="true"></div>
+            <p class="invite-card__copy">
+                기억에 남은 여행을 한 편 적어주세요.<br/>
+                지도에서 다녀온 지역을 고르고,<br/>
+                그곳에서 느낀 결을 편지처럼 남겨주세요.
             </p>
-        </div>
-        <div class="flex items-center gap-1.5 font-caption text-caption text-text-muted">
-            <span class="material-symbols-outlined text-[16px]">schedule</span>
-            <span>1분이면 끝나요</span>
-        </div>
-        <button type="button" id="mbti-start" class="btn-primary w-full h-[52px] text-card-title mt-2">
-            <span class="material-symbols-outlined text-[22px]">explore</span>
-            검사 시작하기
-        </button>
-        <a th:href="@{/map}" class="font-caption text-caption text-text-muted hover:text-primary transition-colors">
-            나중에 할게요
-        </a>
-    </section>
 
-    <!-- ===== 문항 ===== -->
-    <section id="mbti-quiz" class="hidden flex-1 flex-col">
-        <!-- 진행률 -->
-        <div class="mb-6">
-            <div class="flex items-baseline justify-between mb-2">
-                <span class="font-caption text-caption text-primary font-semibold">
-                    <span id="mbti-current">1</span> / <span th:text="${questions.size()}">12</span>
-                </span>
-                <button type="button" id="mbti-back"
-                        class="font-caption text-caption text-text-muted hover:text-primary transition-colors inline-flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>이전
-                </button>
+            <div class="invite-card__signature">
+                <span>당신의 다음 장면을 기다리며</span>
+                <strong>여행페이지 드림</strong>
             </div>
-            <div class="h-2 bg-surface-alt rounded-full overflow-hidden">
-                <div id="mbti-bar" class="h-full bg-primary rounded-full transition-all duration-300" style="width:8%"></div>
-            </div>
-        </div>
 
-        <!-- 문항 카드 (한 번에 하나만 보인다) -->
-        <div th:each="q, it : ${questions}" class="mbti-q flex-1 flex-col justify-center"
-             th:classappend="${it.index > 0} ? 'hidden' : 'flex'" th:attr="data-index=${it.index}">
-            <p class="font-caption text-caption text-text-muted mb-2"
-               th:text="'Q ' + (${q.number} < 10 ? '0' : '') + ${q.number}">Q 01</p>
-            <h2 class="font-section-title text-section-title text-text-primary leading-snug mb-6"
-                th:text="${q.question}">질문</h2>
-
-            <div class="flex flex-col gap-3">
-                <button type="button" class="mbti-a" data-pick="1" th:text="${q.answer1}">답변 1</button>
-                <button type="button" class="mbti-a" data-pick="2" th:text="${q.answer2}">답변 2</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- ===== 결과 ===== -->
-    <section id="mbti-result" class="hidden flex-1 flex-col items-center justify-center text-center gap-4">
-        <div id="mbti-emoji" class="text-[72px] leading-none">🎈</div>
-        <div>
-            <p id="mbti-code" class="font-caption text-caption text-primary font-semibold tracking-[0.2em] mb-1">ENFP</p>
-            <h1 id="mbti-label" class="font-display-title text-display-title text-text-primary mb-2">우연을 사랑하는 방랑자</h1>
-            <p id="mbti-tagline" class="font-body-main text-body-main text-text-muted">계획에 없던 발견을 반기는 타입</p>
-        </div>
-
-        <div class="w-full bg-surface border-2 border-border rounded-xl p-card-padding shadow-sm text-left">
-            <p class="font-caption text-caption text-text-muted mb-1">이런 여행이 어울려요</p>
-            <p id="mbti-style" class="font-body-main text-body-main text-text-primary">추천 성향</p>
-        </div>
-
-        <!-- 비로그인 안내 -->
-        <div id="mbti-signup-note" class="hidden w-full bg-sage-bg border-2 border-sage rounded-xl p-4 text-left">
-            <p class="font-caption text-caption text-text-primary">
-                가입하면 결과가 프로필에 저장되고, AI 상담이 성향에 맞춰 추천해 드려요.
-            </p>
-        </div>
-
-        <div class="w-full flex flex-col sm:flex-row gap-3 mt-2">
-            <a th:href="@{/map}" class="btn-primary flex-1 h-[52px]">
-                <span class="material-symbols-outlined text-[20px]">map</span>
-                여행지 보러 가기
+            <a th:href="@{/onboarding/visits}" class="invite-cta">
+                <span>초대에 참여하기</span>
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
             </a>
-            <a th:if="${!loggedIn}" th:href="@{/signup}" class="btn-secondary flex-1 h-[52px]">가입하고 저장</a>
-            <button type="button" id="mbti-retry" class="btn-secondary flex-1 h-[52px]">다시 하기</button>
+            <p class="invite-card__hint">가입 없이 시작할 수 있어요 · 약 1분</p>
         </div>
+
+        <a th:href="@{/map}" class="invite-skip">편지는 나중에 열어볼게요 <span aria-hidden="true">↗</span></a>
     </section>
 
 </main>
 
 <style>
-    /* 선택지 — 크고 둥글게, 누르면 통통 */
-    .mbti-a {
-        width: 100%;
-        min-height: 68px;
-        padding: 16px 20px;
-        background: var(--surface);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-card);
-        font-size: var(--fs-body);
-        line-height: 1.5;
-        text-align: left;
-        color: var(--text);
-        cursor: pointer;
-        transition: transform 150ms ease-out, border-color var(--transition), background var(--transition);
+    /* 01 들어오기 — 잉크 번짐 위에 놓인 여행 초대장 */
+    .invite-landing {
+        position: relative;
+        isolation: isolate;
+        min-height: min(780px, calc(100vh - 64px));
+        margin: -32px -16px -32px;
+        padding: 56px 16px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 50% 42%, rgba(65, 87, 124, .28), transparent 34%),
+            linear-gradient(145deg, #0B1220 0%, var(--bg) 58%, #18253A 100%);
     }
-    .mbti-a:hover {
-        border-color: var(--accent);
-        background: var(--accent-soft);
-        transform: translateY(-2px);
+    .ink-splash {
+        position: absolute;
+        z-index: -1;
+        width: 410px;
+        height: 410px;
+        border-radius: 44% 56% 63% 37% / 39% 42% 58% 61%;
+        opacity: .82;
+        filter: blur(.2px);
+        transform: rotate(-18deg);
+        background:
+            radial-gradient(circle at 38% 35%, rgba(243, 196, 119, .48) 0 2%, transparent 2.7%),
+            radial-gradient(circle at 68% 18%, rgba(243, 196, 119, .22) 0 1.5%, transparent 2.3%),
+            radial-gradient(ellipse at 42% 46%, #405574 0 22%, #263852 55%, transparent 72%);
     }
-    .mbti-a:active { transform: scale(0.98); }
-    /* 고른 순간 잠깐 강조됐다가 다음 문항으로 넘어간다 */
-    .mbti-a.picked {
-        border-color: var(--accent);
-        background: var(--accent);
-        color: var(--on-accent);
-        transform: scale(1.02);
+    .ink-splash::before,
+    .ink-splash::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        background: #647FA6;
+        opacity: .7;
     }
-    /* 문항이 바뀔 때 살짝 떠오르는 느낌 */
-    .mbti-q:not(.hidden) { animation: mbtiIn 280ms ease-out; }
-    @keyframes mbtiIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
+    .ink-splash::before { width: 20px; height: 20px; top: 4%; right: 19%; box-shadow: 48px 36px 0 -5px #405574, -36px 80px 0 -7px #708DB7; }
+    .ink-splash::after { width: 10px; height: 10px; bottom: 14%; left: 8%; box-shadow: 28px 18px 0 2px #405574, 344px -20px 0 -2px #708DB7; }
+    .ink-splash--one { top: 4%; left: -180px; }
+    .ink-splash--two { right: -210px; bottom: 2%; transform: rotate(28deg) scale(.76); opacity: .52; }
+    .invite-route { position: absolute; inset: 0; pointer-events: none; opacity: .5; }
+    .invite-route__line { position: absolute; width: 180px; height: 90px; left: calc(50% + 160px); top: 23%; border-top: 1px dashed var(--accent); border-radius: 50%; transform: rotate(20deg); }
+    .invite-route__dot { position: absolute; left: calc(50% + 155px); top: calc(23% - 4px); width: 8px; height: 8px; border: 2px solid var(--accent); border-radius: 50%; }
+    .invite-route__dot--end { left: calc(50% + 320px); top: 30%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+    .invite-card {
+        position: relative;
+        width: min(100%, 440px);
+        padding: 26px 32px 24px;
+        color: #3f2b20;
+        text-align: center;
+        background: #f1dfc2;
+        border: 1px solid rgba(255, 244, 218, .75);
+        box-shadow: 0 28px 70px rgba(0, 0, 0, .48), 0 2px 0 rgba(255,255,255,.2) inset;
+        transform: rotate(-1.2deg);
+        animation: invite-arrive 700ms cubic-bezier(.16,.84,.3,1) both;
     }
-    #mbti-emoji { animation: mbtiPop 500ms ease-out; }
-    @keyframes mbtiPop {
-        0%   { opacity: 0; transform: scale(0.4) rotate(-12deg); }
-        60%  { transform: scale(1.15) rotate(4deg); }
-        100% { opacity: 1; transform: scale(1) rotate(0); }
+    .invite-card::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(125, 81, 43, .28); pointer-events: none; }
+    .invite-card__topline { display: flex; justify-content: space-between; position: relative; color: #91602f; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .invite-card__seal { position: relative; display: grid; place-items: center; width: 66px; height: 66px; margin: 28px auto 14px; border-radius: 50%; background: #8d492a; box-shadow: 0 5px 12px rgba(83, 39, 19, .25); }
+    .invite-card__seal .brand-mark { filter: brightness(1.65) saturate(.72); }
+    .invite-card__eyebrow { position: relative; color: #9a5b12; font-size: 10px; font-weight: 700; letter-spacing: .2em; }
+    .invite-card__title { position: relative; margin: 10px 0 15px; color: #291d18; font-family: var(--font-serif); font-size: clamp(28px, 7vw, 38px); font-weight: 700; line-height: 1.35; letter-spacing: -.06em; }
+    .invite-card__title em { color: #a45728; font-style: normal; }
+    .invite-card__rule { position: relative; width: 48px; height: 1px; margin: 0 auto 17px; background: #a56a31; }
+    .invite-card__copy { position: relative; color: #715b4c; font-family: var(--font-serif); font-size: 14px; line-height: 1.85; }
+    .invite-card__signature { position: relative; display: flex; flex-direction: column; gap: 2px; margin: 18px 0 22px; color: #896c58; font-family: var(--font-serif); font-size: 12px; text-align: right; }
+    .invite-card__signature strong { color: #6b402a; font-size: 16px; }
+    .invite-cta { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 52px; border: 0; border-radius: 3px; background: #2d211b; color: #f9e8c9; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 7px 0 #b36b35; transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease; }
+    .invite-cta:hover { background: #452b1d; transform: translateY(-2px); box-shadow: 0 9px 0 #b36b35; }
+    .invite-cta:active { transform: translateY(4px); box-shadow: 0 3px 0 #b36b35; }
+    .invite-card__hint { position: relative; margin-top: 15px; color: #a08069; font-size: 11px; }
+    .invite-skip { margin-top: 24px; color: rgba(245, 235, 221, .62); font-size: 12px; transition: color 180ms ease; }
+    .invite-skip:hover { color: var(--accent); }
+    @keyframes invite-arrive { from { opacity: 0; transform: translateY(22px) rotate(2deg) scale(.97); } to { opacity: 1; transform: translateY(0) rotate(-1.2deg) scale(1); } }
+    @media (max-width: 560px) {
+        .invite-landing { margin: -32px -16px -32px; padding: 34px 14px 30px; min-height: calc(100vh - 24px); }
+        .invite-card { padding: 22px 24px 20px; }
+        .invite-card__seal { margin-top: 22px; }
+        .invite-route { opacity: .25; }
     }
-    @media (prefers-reduced-motion: reduce) {
-        .mbti-a, .mbti-q:not(.hidden), #mbti-emoji { transition: none; animation: none; }
-    }
-</style>
+    @media (prefers-reduced-motion: reduce) { .invite-card { animation: none; } .invite-cta { transition: none; } }
 
-<script th:src="@{/js/onboarding.js}"></script>
+</style>
 </body>
 </html>

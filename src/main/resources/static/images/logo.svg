@@ -1,5 +1,5 @@
-<svg viewBox="7.5 7.5 49 49" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="숨은여행">
-  <title>숨은여행</title>
+<svg viewBox="7.5 7.5 49 49" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="여행페이지">
+  <title>여행페이지</title>
   <!-- 고양이 발자국 (세이지) -->
   <g transform="translate(4 31) rotate(-12) scale(0.86)" fill="#7A9A7E">
     <ellipse cx="4.6" cy="12.6" rx="2.5" ry="3.1" transform="rotate(-22 4.6 12.6)"/>

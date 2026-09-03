@@ -12,8 +12,8 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="한국의 덜 알려진 여행지를 발굴해 나만의 여행 코스를 만드는 서비스">
-    <title th:text="${title}">숨은여행</title>
+    <meta name="description" content="당신의 기록이 다음 여행을 밝혀주는 곳">
+    <title th:text="${title}">여행페이지</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/logo.svg}">
 
     <!-- Fonts (CDN) -->
@@ -129,9 +129,9 @@
 <header th:fragment="header" class="site-header">
     <div class="site-header__inner">
         <!-- Logo: 발자국 마크 + 워드마크 -->
-        <a th:href="@{/map}" class="site-logo" aria-label="숨은여행 홈">
+        <a th:href="@{/map}" class="site-logo" aria-label="여행페이지 홈">
             <span th:replace="~{fragments/brand :: logoMark(30)}"></span>
-            <span class="site-logo__text">숨은여행</span>
+            <span class="site-logo__text">여행페이지</span>
         </a>
 
         <!-- Region search -->
