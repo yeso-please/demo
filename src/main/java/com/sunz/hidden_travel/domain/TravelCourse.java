@@ -37,6 +37,10 @@ public class TravelCourse {
 
     private String title;
 
+    /** TourAPI detailCommon2.overview — 코스 전체 소개 */
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     private String theme;
 
     private String totalDistance;

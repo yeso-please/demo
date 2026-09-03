@@ -13,7 +13,12 @@ public record CoursePageData(
         List<CandidateItem> foods,
         List<CandidateItem> goodShops,
         List<CandidateItem> specialties,
-        List<CourseInitItem> initialItems
+        List<CourseInitItem> initialItems,
+        String recommendedCourseTitle,
+        String recommendedCourseDescription,
+        String recommendedCourseImage,
+        String recommendationReason,
+        boolean overviewPending
 ) {
 
     /**
@@ -22,6 +27,8 @@ public record CoursePageData(
      * (자동 코스는 출발점이지 결론이 아니다).
      */
     public CoursePageData withInitialCourse(String name, List<CourseInitItem> items) {
-        return new CoursePageData(sigCd, regionName, name, attractions, foods, goodShops, specialties, items);
+        return new CoursePageData(sigCd, regionName, name, attractions, foods, goodShops, specialties, items,
+                recommendedCourseTitle, recommendedCourseDescription, recommendedCourseImage,
+                recommendationReason, overviewPending);
     }
 }

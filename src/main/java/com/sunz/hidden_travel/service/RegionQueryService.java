@@ -7,6 +7,7 @@ import com.sunz.hidden_travel.controller.dto.CoursePageData;
 import com.sunz.hidden_travel.controller.dto.CoursePoint;
 import com.sunz.hidden_travel.controller.dto.GoodPriceShop;
 import com.sunz.hidden_travel.controller.dto.RegionBundle;
+import com.sunz.hidden_travel.controller.dto.RegionPreview;
 import com.sunz.hidden_travel.domain.Attraction;
 import com.sunz.hidden_travel.domain.FoodPlace;
 import com.sunz.hidden_travel.domain.Region;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 
 /**
  * SIG_CD 기준으로 DB 실데이터를 조립해 지역 화면(패널/상세)에 제공한다.
@@ -115,6 +117,43 @@ public class RegionQueryService {
                 dayPlanService.canBuild(attractions, foods, shops));
     }
 
+    /** 지도 선택 직후 다이어리 위에 펼칠 최소 지역 정보(추가 TourAPI 호출 없음). */
+    public RegionPreview preview(String sigCd) {
+        Region region = regionRepository.findById(sigCd).orElse(null);
+        List<Attraction> attractions = attractionRepository.findBySigCd(sigCd).stream()
+                .sorted(Comparator
+                        .comparing((Attraction a) -> hasText(a.getImage()) ? 0 : 1)
+                        .thenComparing(a -> hasText(a.getDescription()) ? 0 : 1)
+                        .thenComparing(Attraction::getName, Comparator.nullsLast(String::compareTo)))
+                .limit(2)
+                .toList();
+
+        String name = region != null ? region.getName() : "알 수 없는 지역";
+        String province = region != null ? region.getProvince() : "";
+        String summary = attractions.stream()
+                .map(Attraction::getDescription)
+                .filter(this::hasText)
+                .map(this::shorten)
+                .findFirst()
+                .orElse("이곳에서 보낸 시간을 한 줄씩 적어보세요.");
+
+        return new RegionPreview(sigCd, name, province, summary,
+                attractions.stream()
+                        .map(a -> new RegionPreview.AttractionPreview(
+                                a.getName(), a.getType(), shorten(a.getDescription()), a.getImage()))
+                        .toList());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String shorten(String value) {
+        if (!hasText(value)) return "";
+        String clean = value.replaceAll("\\s+", " ").trim();
+        return clean.length() > 92 ? clean.substring(0, 92) + "…" : clean;
+    }
+
     /* 패널 "추천 반일 코스": 여행코스 경유지 우선, 없으면 관광지+맛집 간이 조합 */
     private List<CoursePoint> briefCourse(List<TravelCourse> courses, List<Attraction> attractions, List<FoodPlace> foods) {
         List<CoursePoint> brief = new ArrayList<>();
@@ -197,11 +236,12 @@ public class RegionQueryService {
                         sp.getSeason(), "특산물", false, null, null, null, null))
                 .toList();
 
+        com.sunz.hidden_travel.domain.TravelCourse selectedCourse = courseId == null ? null
+                : travelCourseRepository.findById(courseId).orElse(null);
         List<CourseInitItem> initial = new ArrayList<>();
-        if (courseId != null) {
-            travelCourseRepository.findById(courseId).ifPresent(tc -> {
+        if (selectedCourse != null) {
                 int order = 1;
-                for (com.sunz.hidden_travel.domain.CoursePoint p : tc.getPoints()) {
+                for (com.sunz.hidden_travel.domain.CoursePoint p : selectedCourse.getPoints()) {
                     // 경유지의 contentId 로 이미 적재된 관광지를 찾으면 그 id 를 넘겨
                     // 후보 카드에서 담은 항목과 똑같이 동작하게 한다.
                     Attraction matched = (p.getContentId() == null || p.getContentId().isBlank())
@@ -223,11 +263,25 @@ public class RegionQueryService {
                             matched != null ? matched.getLng() : null,
                             matched != null ? matched.getDescription() : null));
                 }
-            });
         }
 
-        return new CoursePageData(sigCd, regionName, regionName + " 코스",
-                attractions, foods, goodShops, specialties, initial);
+        String selectedTitle = selectedCourse != null ? selectedCourse.getTitle() : null;
+        String selectedDescription = selectedCourse != null ? selectedCourse.getDescription() : null;
+        String selectedImage = selectedCourse == null ? null : selectedCourse.getPoints().stream()
+                .map(com.sunz.hidden_travel.domain.CoursePoint::getImage)
+                .filter(this::hasText)
+                .findFirst().orElse(null);
+        boolean overviewPending = selectedCourse != null && !hasText(selectedDescription);
+        String recommendationReason = selectedCourse == null ? null
+                : selectedCourse.getPoints().isEmpty()
+                ? regionName + "에 등록된 공식 여행 코스라서 이 지역을 둘러보기 좋은 출발점이에요."
+                : regionName + "에서 함께 둘러보기 좋은 " + selectedCourse.getPoints().size()
+                + "곳의 경유지를 하나의 여행 흐름으로 이어둔 공식 코스예요.";
+
+        return new CoursePageData(sigCd, regionName,
+                selectedTitle != null ? selectedTitle : regionName + " 코스",
+                attractions, foods, goodShops, specialties, initial,
+                selectedTitle, selectedDescription, selectedImage, recommendationReason, overviewPending);
     }
 
     private String shopPriceText(com.sunz.hidden_travel.domain.GoodPriceShop s) {

@@ -82,6 +82,12 @@ public class AdminSyncController {
         return sync.refreshCoursePoints();
     }
 
+    /** 이미 적재된 여행코스의 TourAPI detailCommon2.overview를 보정한다. */
+    @PostMapping("/tour/course-overviews")
+    public Map<String, Object> courseOverviews() {
+        return sync.refreshCourseOverviews();
+    }
+
     /** 남은 호출 예산 조회 (API 호출 없음) — GET /admin/sync/tour/budget */
     @GetMapping("/tour/budget")
     public Map<String, Object> budget() {

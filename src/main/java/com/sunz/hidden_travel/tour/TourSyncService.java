@@ -300,6 +300,41 @@ public class TourSyncService {
         return m;
     }
 
+    /** 이미 적재된 여행코스의 detailCommon2.overview를 보정한다. */
+    public Map<String, Object> refreshCourseOverviews() {
+        List<TravelCourse> courses = travelCourseRepository.findAll();
+        int updated = 0;
+        int skipped = 0;
+        boolean budgetOut = false;
+
+        for (TravelCourse tc : courses) {
+            if (tc.getDescription() != null && !tc.getDescription().isBlank()) {
+                skipped++;
+                continue;
+            }
+            if (client.remainingCalls() <= 0) {
+                budgetOut = true;
+                break;
+            }
+            String overview = fillCourseOverview(tc, tc.getSourceContentId());
+            if (overview != null && !overview.isBlank()) {
+                tc.setDescription(overview);
+                travelCourseRepository.save(tc);
+                updated++;
+            }
+            sleep();
+        }
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("전체 코스", courses.size());
+        m.put("overview 적재", updated);
+        m.put("이미 완료", skipped);
+        m.put("남은 호출", client.remainingCalls());
+        m.put("한도 소진으로 중단", budgetOut);
+        log.info("[TourSync] refreshCourseOverviews → {}", m);
+        return m;
+    }
+
     /** 현재 호출 예산 상태만 조회(호출 없음) */
     public Map<String, Object> budget() {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -372,6 +407,7 @@ public class TourSyncService {
                 tc.setTheme(text(item, "cat2"));
                 tc.setSourceContentId(cid);
                 fillCoursePoints(tc, cid);
+                fillCourseOverview(tc, cid);
                 travelCourseRepository.save(tc);
                 c.travelCourses++;
             }
@@ -411,6 +447,21 @@ public class TourSyncService {
             tc.setPoints(points);
         } catch (Exception e) {
             log.debug("[TourSync] 코스 경유지 조회 실패 cid={}: {}", cid, e.getMessage());
+        }
+    }
+
+    /** 여행코스 전체 소개(detailCommon2.overview) — 코스당 1회. */
+    private String fillCourseOverview(TravelCourse tc, String cid) {
+        if (cid == null || cid.isBlank() || client.remainingCalls() <= 0) return null;
+        try {
+            JsonNode detail = client.detailCommon(cid);
+            if (detail == null) return null;
+            String overview = text(detail, "overview");
+            if (overview != null && !overview.isBlank()) tc.setDescription(overview);
+            return overview;
+        } catch (Exception e) {
+            log.debug("[TourSync] 코스 overview 조회 실패 cid={}: {}", cid, e.getMessage());
+            return null;
         }
     }
 
