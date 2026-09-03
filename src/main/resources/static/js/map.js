@@ -383,7 +383,18 @@
             data = await res.json();
         } catch (e) { return; }
 
-        if (!data.enough || !(data.candidates || []).length) return;
+        if (!data.enough) {
+            const copy = document.getElementById('picks-empty-copy');
+            const remaining = Number(data.remaining) || 1;
+            if (copy) copy.textContent = '여행 기록을 ' + remaining
+                + '편 더 남기면, 그 결에 맞는 공식 코스를 여기에 켜 드려요.';
+            return;
+        }
+        if (!(data.candidates || []).length) {
+            const copy = document.getElementById('picks-empty-copy');
+            if (copy) copy.textContent = '기록은 충분해요. 어울리는 공식 코스를 찾고 있어요.';
+            return;
+        }
 
         data.candidates.forEach((c) => list.appendChild(pickCard(c)));
         if (empty) empty.style.display = 'none';
