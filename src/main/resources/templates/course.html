@@ -20,7 +20,7 @@
                 class="bg-primary-container hover:bg-accent-hover text-on-secondary h-[44px] px-6 rounded font-semibold transition-all duration-300 hover:-translate-y-[2px] whitespace-nowrap shrink-0 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:bg-primary-container">
             <span class="material-symbols-outlined text-[18px]">save</span> 코스 저장
         </button>
-        <a th:if="${currentUser == null}" id="login-to-save" th:href="@{/}"
+        <a th:if="${currentUser == null}" id="login-to-save" th:href="@{/login}"
            title="담아둔 코스는 로그인 후에도 그대로 남아 있어요"
            class="bg-primary-container hover:bg-accent-hover text-on-secondary h-[44px] px-6 rounded font-semibold transition-all duration-300 hover:-translate-y-[2px] whitespace-nowrap shrink-0 flex items-center gap-1">
             <span class="material-symbols-outlined text-[18px]">login</span> 로그인하고 저장

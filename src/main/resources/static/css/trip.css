@@ -1,4 +1,4 @@
-/* Stitch 시안을 기존 숨은여행 토큰과 실제 지도 컴포넌트에 맞춘 여행 결정 흐름 */
+/* Stitch 시안을 여행페이지 토큰과 실제 지도 컴포넌트에 맞춘 여행 결정 흐름 */
 .trip-builder,
 .recommendation-layout {
     height: calc(100vh - 64px);
