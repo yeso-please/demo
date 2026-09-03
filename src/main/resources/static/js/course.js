@@ -491,24 +491,49 @@
         const main = gallery.querySelector('.course-source-gallery__main');
         if (!main) return;
 
-        gallery.addEventListener('click', (e) => {
-            const thumb = e.target.closest('.course-gallery-thumb');
-            if (!thumb) return;
+        const track = gallery.querySelector('.course-gallery-track');
+        const originalSet = gallery.querySelector('.course-gallery-set');
+        if (!track || !originalSet) return;
+
+        // 끊김 없이 이어지는 필름처럼 보이도록 같은 장면 묶음을 한 번 더 잇는다.
+        const clone = originalSet.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.querySelectorAll('button').forEach((button) => button.setAttribute('tabindex', '-1'));
+        track.appendChild(clone);
+
+        const originals = Array.from(originalSet.querySelectorAll('.course-gallery-thumb'));
+        let activeIndex = 0;
+
+        function showPhoto(thumb) {
             const nextSrc = thumb.getAttribute('data-gallery-src');
             if (!nextSrc || main.getAttribute('src') === nextSrc) return;
+            activeIndex = Number(thumb.getAttribute('data-gallery-index')) || 0;
 
             main.classList.add('opacity-40');
             main.onload = () => main.classList.remove('opacity-40');
             main.onerror = () => main.classList.remove('opacity-40');
             main.src = nextSrc;
             gallery.querySelectorAll('.course-gallery-thumb').forEach((button) => {
-                const active = button === thumb;
+                const active = button.getAttribute('data-gallery-index') === String(activeIndex);
                 button.classList.toggle('is-active', active);
                 button.classList.toggle('ring-2', active);
                 button.classList.toggle('ring-primary', active);
                 button.setAttribute('aria-pressed', String(active));
             });
+        }
+
+        gallery.addEventListener('click', (e) => {
+            const thumb = e.target.closest('.course-gallery-thumb');
+            if (thumb) showPhoto(thumb);
         });
+
+        // 풍경이 흘러가듯 메인 장면도 천천히 다음 경유지로 넘어간다.
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && originals.length > 1) {
+            window.setInterval(() => {
+                activeIndex = (activeIndex + 1) % originals.length;
+                showPhoto(originals[activeIndex]);
+            }, 5200);
+        }
     }
 
     /* ---------- 초기화 ---------- */

@@ -26,6 +26,78 @@
     100% { transform: rotate(360deg); }
 }
 
+/* ----- 공식 코스 사진 여정: 원사진 아래에서 끊김 없이 흐르는 필름 스트립 ----- */
+.course-gallery-strip__viewport {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+}
+.course-gallery-track {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+    padding: 0 8px;
+    animation: course-gallery-journey 24s linear infinite;
+    will-change: transform;
+}
+.course-gallery-set {
+    display: flex;
+    gap: 8px;
+}
+.course-gallery-scene {
+    position: relative;
+    width: 132px;
+    height: 82px;
+    flex: none;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-alt);
+    text-align: left;
+    transition: border-color .2s ease, transform .2s ease, opacity .2s ease;
+}
+.course-gallery-scene:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+.course-gallery-scene.is-active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 36%, transparent);
+}
+.course-gallery-scene > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.course-gallery-scene__caption {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 16px 7px 6px;
+    color: #fff;
+    background: linear-gradient(to top, rgba(9, 16, 29, .88), transparent);
+    font-size: 10px;
+    line-height: 1.2;
+}
+.course-gallery-scene__caption b {
+    color: #f4c975;
+}
+.course-gallery-scene__caption span {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@keyframes course-gallery-journey {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(calc(-50% - 4px), 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .course-gallery-track { animation: none; }
+}
+
 /* ----- 무작위(룰렛) 버튼: 돌아가는 동안 아이콘 회전 ----- */
 #map-shuffle.is-spinning .material-symbols-outlined {
     animation: spin 0.7s linear infinite;

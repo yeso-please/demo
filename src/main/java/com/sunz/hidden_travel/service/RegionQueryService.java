@@ -6,6 +6,7 @@ import com.sunz.hidden_travel.controller.dto.CourseInitItem;
 import com.sunz.hidden_travel.controller.dto.CoursePageData;
 import com.sunz.hidden_travel.controller.dto.CoursePoint;
 import com.sunz.hidden_travel.controller.dto.GoodPriceShop;
+import com.sunz.hidden_travel.controller.dto.OfficialCourseGuide;
 import com.sunz.hidden_travel.controller.dto.RegionBundle;
 import com.sunz.hidden_travel.controller.dto.RegionPreview;
 import com.sunz.hidden_travel.domain.Attraction;
@@ -311,10 +312,16 @@ public class RegionQueryService {
                 ? regionName + "에 등록된 공식 여행 코스라서 이 지역을 둘러보기 좋은 출발점이에요."
                 : regionName + "에서 함께 둘러보기 좋은 " + selectedCourse.getPoints().size()
                 + "곳의 경유지를 하나의 여행 흐름으로 이어둔 공식 코스예요.";
-        com.sunz.hidden_travel.controller.dto.OfficialCourseGuide officialCourseGuide = selectedCourse == null
+        List<OfficialCourseGuide.CoursePhoto> coursePhotos = new ArrayList<>();
+        for (CourseInitItem item : initial) {
+            if (!hasText(item.image()) || coursePhotos.stream().anyMatch(p -> p.image().equals(item.image()))) continue;
+            coursePhotos.add(new OfficialCourseGuide.CoursePhoto(item.image(), item.name(), item.order()));
+            if (coursePhotos.size() >= 8) break;
+        }
+        OfficialCourseGuide officialCourseGuide = selectedCourse == null
                 ? null
-                : new com.sunz.hidden_travel.controller.dto.OfficialCourseGuide(
-                        initial.stream().map(CourseInitItem::image).filter(this::hasText).distinct().limit(4).toList(),
+                : new OfficialCourseGuide(
+                        coursePhotos,
                         initial.size(), mappedStopCount, detailedStopCount, hoursKnownCount,
                         themeLabel(selectedCourse.getTheme()), selectedCourse.getTotalDistance());
 
