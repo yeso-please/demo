@@ -90,8 +90,7 @@ public class RegionQueryService {
         boolean dataReady = attractionCount + foodCount + shopCount + specialtyCount > 0;
 
         String aiSummary = dataReady
-                ? String.format("%s %s · 관광지 %d곳, 착한가격업소 %d곳, 특산물 %d종이 기다리는 곳입니다.",
-                        province, name, attractionCount, shopCount, specialtyCount)
+                ? regionStory(province, name, attractions)
                 : "이 지역의 여행 정보는 아직 준비 중이에요. 조금만 기다려 주세요.";
 
         List<String> specialtyNames = specialties.stream().map(Specialty::getName).toList();
@@ -146,6 +145,34 @@ public class RegionQueryService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    /**
+     * 바로 아래 지표와 숫자를 반복하지 않고, 실제 적재된 대표 장소로 지역의 첫인상을 만든다.
+     * 장소 이름 외의 분위기나 역사적 사실을 추측하지 않는다.
+     */
+    private String regionStory(String province, String name, List<Attraction> attractions) {
+        List<String> scenes = attractions.stream()
+                .sorted(Comparator
+                        .comparing((Attraction a) -> hasText(a.getImage()) ? 0 : 1)
+                        .thenComparing(a -> hasText(a.getDescription()) ? 0 : 1))
+                .map(Attraction::getName)
+                .filter(this::hasText)
+                .distinct()
+                .limit(3)
+                .toList();
+        String place = (hasText(province) ? province + " " : "") + name;
+        if (scenes.isEmpty()) {
+            return place + "에서 마음에 남는 장면을 찾아 당신만의 여행 순서로 엮어보세요.";
+        }
+        if (scenes.size() == 1) {
+            return place + ", " + scenes.get(0)
+                    + "에서 첫 장을 열고 주변의 장소를 천천히 이어보는 여행이에요.";
+        }
+        String last = scenes.get(scenes.size() - 1);
+        String before = String.join(", ", scenes.subList(0, scenes.size() - 1));
+        return place + ", " + before + "에서 " + last
+                + "까지 서로 다른 장면을 천천히 이어보세요. 마음에 남는 곳을 골라 나만의 하루로 엮을 수 있어요.";
     }
 
     private String shorten(String value) {
@@ -239,6 +266,9 @@ public class RegionQueryService {
         com.sunz.hidden_travel.domain.TravelCourse selectedCourse = courseId == null ? null
                 : travelCourseRepository.findById(courseId).orElse(null);
         List<CourseInitItem> initial = new ArrayList<>();
+        int mappedStopCount = 0;
+        int detailedStopCount = 0;
+        int hoursKnownCount = 0;
         if (selectedCourse != null) {
                 int order = 1;
                 for (com.sunz.hidden_travel.domain.CoursePoint p : selectedCourse.getPoints()) {
@@ -247,6 +277,9 @@ public class RegionQueryService {
                     Attraction matched = (p.getContentId() == null || p.getContentId().isBlank())
                             ? null
                             : attractionRepository.findFirstBySourceContentId(p.getContentId()).orElse(null);
+                    if (matched != null && matched.getLat() != null && matched.getLng() != null) mappedStopCount++;
+                    if (matched != null && matched.isDetailFetched()) detailedStopCount++;
+                    if (matched != null && hasText(matched.getUsetime())) hoursKnownCount++;
 
                     initial.add(new CourseInitItem(
                             order++,
@@ -261,7 +294,8 @@ public class RegionQueryService {
                             matched != null ? matched.getAddr() : null,
                             matched != null ? matched.getLat() : null,
                             matched != null ? matched.getLng() : null,
-                            matched != null ? matched.getDescription() : null));
+                            matched != null && hasText(matched.getDescription())
+                                    ? matched.getDescription() : p.getDescription()));
                 }
         }
 
@@ -277,11 +311,18 @@ public class RegionQueryService {
                 ? regionName + "에 등록된 공식 여행 코스라서 이 지역을 둘러보기 좋은 출발점이에요."
                 : regionName + "에서 함께 둘러보기 좋은 " + selectedCourse.getPoints().size()
                 + "곳의 경유지를 하나의 여행 흐름으로 이어둔 공식 코스예요.";
+        com.sunz.hidden_travel.controller.dto.OfficialCourseGuide officialCourseGuide = selectedCourse == null
+                ? null
+                : new com.sunz.hidden_travel.controller.dto.OfficialCourseGuide(
+                        initial.stream().map(CourseInitItem::image).filter(this::hasText).distinct().limit(4).toList(),
+                        initial.size(), mappedStopCount, detailedStopCount, hoursKnownCount,
+                        themeLabel(selectedCourse.getTheme()), selectedCourse.getTotalDistance());
 
         return new CoursePageData(sigCd, regionName,
                 selectedTitle != null ? selectedTitle : regionName + " 코스",
                 attractions, foods, goodShops, specialties, initial,
-                selectedTitle, selectedDescription, selectedImage, recommendationReason, overviewPending);
+                selectedTitle, selectedDescription, selectedImage, recommendationReason, overviewPending,
+                officialCourseGuide);
     }
 
     private String shopPriceText(com.sunz.hidden_travel.domain.GoodPriceShop s) {

@@ -28,7 +28,7 @@
                     길찾기
                 </button>
             </div>
-            <p class="font-body-main text-body-main text-on-surface-variant max-w-2xl mb-6" th:text="${heroDesc}">지역 소개</p>
+            <p class="font-body-main text-[17px] leading-[1.85] text-on-surface-variant max-w-2xl mb-6" th:text="${heroDesc}">지역 소개</p>
 
             <!-- 대표 행동: 발견한 지역을 그 자리에서 하루로 바꾼다.
                  아래 '추천 코스'는 TourAPI 코스(92%가 경유지 없음)라 이쪽이 실행에 더 가깝다. -->
@@ -62,14 +62,17 @@
             TourAPI 에 지역 단위 소개글이 없어(areaCode2 는 코드·이름만) 가진 데이터로 서술한다.
             랜드마크 설명만 콘텐츠 단위 소개글이 있어 region-intro.js 가 비동기로 채운다. -->
     <section class="bg-surface border border-border rounded p-8 mb-section-gap fade-up">
-        <h2 class="font-section-title text-section-title mb-6 pb-4 border-b border-border">이 지역은 이런 곳이에요</h2>
+        <div class="mb-6 pb-4 border-b border-border">
+            <span class="font-caption text-caption text-primary">지역의 다음 장</span>
+            <h2 class="font-section-title text-section-title mt-1" th:text="|${region.name}의 여행 장면|">지역의 여행 장면</h2>
+        </div>
         <div class="space-y-6 text-[16px] leading-[1.8] text-on-surface-variant">
 
             <p th:if="${intro.overview != null and !intro.overview.isBlank()}" th:text="${intro.overview}">지역 개요</p>
 
             <!-- 특산물: 데이터가 있는 지역만(전국 24곳) -->
             <div th:if="${intro.hasSpecialties()}">
-                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">유명한 것들</h3>
+                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">여행 노트에 적어둘 것들</h3>
                 <div class="flex flex-wrap gap-2">
                     <span th:each="s : ${intro.specialties}" class="chip" th:text="${s}">특산물</span>
                 </div>
@@ -77,7 +80,7 @@
 
             <!-- 대표적인 랜드마크 -->
             <div th:if="${intro.hasLandmarks()}" id="intro-landmarks">
-                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">대표적인 랜드마크</h3>
+                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">먼저 펼쳐볼 장소</h3>
                 <div class="flex flex-col gap-4">
                     <div th:each="lm : ${intro.landmarks}" class="landmark flex gap-4 items-start"
                          th:attr="data-id=${lm.id}">
@@ -96,7 +99,7 @@
 
             <!-- 먹거리 -->
             <div th:if="${intro.hasFood()}">
-                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">먹거리</h3>
+                <h3 class="font-card-title text-card-title text-text-primary mb-2 mt-4">한 끼로 기억할 것들</h3>
                 <p th:if="${intro.foodSummary != null and !intro.foodSummary.isBlank()}" th:text="${intro.foodSummary}">먹거리 요약</p>
                 <ul th:if="${!intro.goodPriceHighlights.isEmpty()}" class="mt-3 flex flex-col gap-1.5">
                     <li th:each="g : ${intro.goodPriceHighlights}" class="flex items-start gap-2">

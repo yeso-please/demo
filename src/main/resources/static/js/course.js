@@ -183,11 +183,15 @@
             if (here) prevCoord = here;
         });
 
-        // 하루 코스 요약 카드가 있을 때만 총계를 갱신한다
+        // 자동 하루 코스와 TourAPI 공식 코스의 판단 카드를 함께 갱신한다.
         const dur = document.getElementById('plan-duration');
         const dist = document.getElementById('plan-distance');
         if (dur) dur.textContent = totalKm > 0 ? minutesText(totalKm) : '—';
         if (dist) dist.textContent = totalKm > 0 ? kmText(totalKm) : '—';
+        const courseDur = document.getElementById('course-duration');
+        const courseDist = document.getElementById('course-distance');
+        if (courseDur) courseDur.textContent = totalKm > 0 ? minutesText(totalKm) : '좌표 부족';
+        if (courseDist) courseDist.textContent = totalKm > 0 ? kmText(totalKm) : '좌표 부족';
     }
 
     /* ---------- 임시 보관 (비로그인 → 로그인 왕복 시 코스 유지) ----------
@@ -255,6 +259,8 @@
         const count = courseItems().length;
         const t = document.getElementById('total-places');
         if (t) t.textContent = String(count);
+        const officialCount = document.getElementById('official-stop-count');
+        if (officialCount) officialCount.textContent = String(count);
         // 담긴 곳이 없으면 저장 버튼을 비활성 — 눌러도 아무 일 없는 상태를 만들지 않는다
         const btn = document.getElementById('save-btn');
         if (btn) {

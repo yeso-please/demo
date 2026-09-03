@@ -87,27 +87,24 @@ public class RegionIntroService {
         if (region == null) {
             return "";
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(region.getProvince()).append(' ').append(region.getName())
-          .append("에는 관광지 ").append(attractions.size()).append("곳");
-        if (!foods.isEmpty()) {
-            sb.append(", 음식점 ").append(foods.size()).append("곳");
-        }
-        if (!shops.isEmpty()) {
-            sb.append(", 착한가격업소 ").append(shops.size()).append("곳");
-        }
-        sb.append("이 등록되어 있습니다.");
-
-        // 이름만으로도 지역의 결이 드러난다 — 대표 몇 곳을 덧붙인다
+        // 숫자는 바로 위 지표에서 이미 보인다. 여기서는 실제 장소를 한 편의 흐름으로 읽게 한다.
         List<String> names = attractions.stream()
                 .map(Attraction::getName)
                 .filter(n -> n != null && !n.isBlank())
-                .limit(4)
+                .distinct()
+                .limit(3)
                 .toList();
-        if (!names.isEmpty()) {
-            sb.append(' ').append(String.join(", ", names)).append(" 같은 곳을 둘러볼 수 있어요.");
+        if (names.isEmpty()) {
+            return region.getName() + "의 여행 장면을 채울 장소를 준비하고 있어요.";
         }
-        return sb.toString();
+        StringBuilder story = new StringBuilder();
+        story.append(region.getName()).append("의 여행은 ")
+                .append(String.join(", ", names)).append(" 같은 장소에서 시작됩니다. ")
+                .append("각 장소의 이야기를 읽고 마음에 드는 장면을 골라, 당신의 속도에 맞는 여행 순서로 이어보세요.");
+        if (!foods.isEmpty() || !shops.isEmpty()) {
+            story.append(" 이동 사이에는 아래의 지역 먹거리도 함께 살펴볼 수 있어요.");
+        }
+        return story.toString();
     }
 
     /* ---------- 대표 랜드마크 ---------- */

@@ -18,7 +18,8 @@ public record CoursePageData(
         String recommendedCourseDescription,
         String recommendedCourseImage,
         String recommendationReason,
-        boolean overviewPending
+        boolean overviewPending,
+        OfficialCourseGuide officialCourseGuide
 ) {
 
     /**
@@ -29,6 +30,6 @@ public record CoursePageData(
     public CoursePageData withInitialCourse(String name, List<CourseInitItem> items) {
         return new CoursePageData(sigCd, regionName, name, attractions, foods, goodShops, specialties, items,
                 recommendedCourseTitle, recommendedCourseDescription, recommendedCourseImage,
-                recommendationReason, overviewPending);
+                recommendationReason, overviewPending, officialCourseGuide);
     }
 }

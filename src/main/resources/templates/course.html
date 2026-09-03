@@ -46,11 +46,18 @@
 
         <article th:if="${data.recommendedCourseTitle != null}"
                  class="course-source-card bg-accent-soft border border-border rounded-lg overflow-hidden">
-            <img th:if="${data.recommendedCourseImage != null}"
-                 th:src="${data.recommendedCourseImage}" th:alt="${data.recommendedCourseTitle}"
-                 class="w-full h-[132px] object-cover" loading="lazy"/>
+            <div th:if="${data.officialCourseGuide.hasImages()}" class="grid grid-cols-4 gap-1 h-[144px] bg-surface-alt">
+                <img th:each="image, stat : ${data.officialCourseGuide.images}"
+                     th:src="${image}" th:alt="|${data.recommendedCourseTitle} 사진 ${stat.count}|"
+                     th:class="${stat.first} ? 'col-span-3 row-span-2 w-full h-full object-cover' : 'w-full h-[46px] object-cover'"
+                     loading="lazy"/>
+            </div>
             <div class="p-4">
-                <span class="font-caption text-caption text-primary">추천 코스 · TourAPI 공식</span>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-caption text-caption text-primary">추천 코스 · TourAPI 공식</span>
+                    <span class="font-caption text-[11px] text-text-muted"
+                          th:text="|${data.officialCourseGuide.theme} · ${data.officialCourseGuide.stopCount}곳|">자연 코스 · 4곳</span>
+                </div>
                 <h2 class="font-section-title text-section-title text-text-primary mt-1"
                     th:text="${data.recommendedCourseTitle}">추천 코스 제목</h2>
                 <p class="font-body-main text-caption text-text-muted leading-relaxed mt-2"
@@ -182,6 +189,58 @@
                 </p>
             </div>
 
+            <!-- ===== TourAPI 공식 추천 코스 판단 카드 =====
+                 사진 한 장과 설명을 넘어, 여행 규모와 데이터 완성도를 먼저 판단하게 한다. -->
+            <section th:if="${data.officialCourseGuide != null}"
+                     class="mb-4 overflow-hidden rounded-lg border border-border bg-accent-soft">
+                <div class="p-5">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <span class="font-caption text-caption text-primary">떠나기 전 한눈에</span>
+                            <h3 class="mt-1 font-section-title text-card-title text-text-primary">이 코스, 이렇게 움직여요</h3>
+                            <p class="mt-1 font-body-main text-caption text-text-muted leading-relaxed">
+                                아래 순서가 TourAPI에 등록된 공식 여행 흐름이에요. 장소를 빼거나 끌어서 순서를 바꾸면 이동 추정도 바로 달라집니다.
+                            </p>
+                        </div>
+                        <span class="material-symbols-outlined text-primary text-[28px]">route</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                        <div class="rounded-md border border-border bg-surface/80 p-3">
+                            <span class="block font-caption text-[11px] text-text-muted">경유지</span>
+                            <strong class="font-semibold text-text-primary"><span id="official-stop-count" th:text="${data.officialCourseGuide.stopCount}">4</span>곳</strong>
+                        </div>
+                        <div class="rounded-md border border-border bg-surface/80 p-3">
+                            <span class="block font-caption text-[11px] text-text-muted">이동시간 (추정)</span>
+                            <strong id="course-duration" class="font-semibold text-text-primary">계산 중</strong>
+                        </div>
+                        <div class="rounded-md border border-border bg-surface/80 p-3">
+                            <span class="block font-caption text-[11px] text-text-muted">이동거리 (추정)</span>
+                            <strong id="course-distance" class="font-semibold text-text-primary">계산 중</strong>
+                        </div>
+                        <div class="rounded-md border border-border bg-surface/80 p-3">
+                            <span class="block font-caption text-[11px] text-text-muted">지도에 표시</span>
+                            <strong class="font-semibold text-text-primary"
+                                    th:text="|${data.officialCourseGuide.mappedStopCount}/${data.officialCourseGuide.stopCount}곳|">4/4곳</strong>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5">
+                        <span class="inline-flex items-center gap-1.5 font-caption text-caption text-text-primary">
+                            <span class="material-symbols-outlined text-[17px] text-primary">article</span>
+                            상세 적재 <b th:text="|${data.officialCourseGuide.detailedStopCount}/${data.officialCourseGuide.stopCount}곳|">2/4곳</b>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 font-caption text-caption text-text-primary">
+                            <span class="material-symbols-outlined text-[17px] text-primary">schedule</span>
+                            이용시간 확인 가능 <b th:text="|${data.officialCourseGuide.hoursKnownCount}/${data.officialCourseGuide.stopCount}곳|">1/4곳</b>
+                        </span>
+                    </div>
+                    <p class="mt-3 font-caption text-[11px] text-text-muted leading-relaxed">
+                        이동은 좌표가 있는 장소끼리의 직선거리에 도로 보정치를 적용한 추정값이에요. 실제 교통과 운영시간은 출발 전에 각 장소의 ‘자세히’에서 다시 확인해 주세요.
+                    </p>
+                </div>
+            </section>
+
             <!-- 하루 코스를 만들 수 없는 지역 — 이유를 밝히고 수동 편집으로 넘긴다 -->
             <div th:if="${dayPlan != null and !dayPlan.available}"
                  class="mb-4 bg-surface-alt border border-border rounded-lg p-5 flex items-start gap-3">
@@ -215,6 +274,10 @@
                 </p>
             </div>
 
+            <div th:if="${data.officialCourseGuide != null}" class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-primary text-[19px]">conversion_path</span>
+                <h3 class="font-section-title text-card-title text-text-primary">경유지별 여행 흐름</h3>
+            </div>
             <div id="course-timeline" class="flex-1 flex flex-col"
                  th:attr="data-autoplan=${dayPlan != null and dayPlan.available} ? 'true' : null">
                 <!-- 초기 코스 항목(추천 코스 또는 자동 조립한 하루) — 경유지도 TourAPI 콘텐츠라 사진·상세 제공 -->
