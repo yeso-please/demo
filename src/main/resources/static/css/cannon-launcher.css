@@ -1,17 +1,17 @@
 .travel-cannon {
     position: absolute; right: 18px; bottom: 18px; z-index: 8;
     width: 370px; height: 385px; padding: 0; border: 0; background: none;
-    color: #eef3f8; font: 13px/1.5 var(--font-sans, sans-serif);
+    color: var(--text); font: 13px/1.5 var(--font-sans, sans-serif);
     pointer-events: none;
 }
 .travel-cannon *, .travel-cannon *::before, .travel-cannon *::after { box-sizing: border-box; }
 .travel-cannon button, .travel-cannon input, .travel-cannon details { pointer-events: auto; font: inherit; }
 .travel-cannon button { cursor: pointer; }
 .travel-cannon button:disabled { cursor: wait; }
-.travel-cannon :focus-visible { outline: 2px solid #f1c477; outline-offset: 5px; }
+.travel-cannon :focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .travel-cannon [hidden] { display: none !important; }
 .travel-cannon__heading { position: absolute; left: 12px; top: 0; }
-.travel-cannon__count { color: #f1c477; font-size: 11px; text-shadow: 0 2px 8px #081321; }
+.travel-cannon__count { color: var(--accent-hover); font-size: 11px; }
 .travel-cannon__crew {
     position: absolute; left: 0; right: 0; top: 20px;
     z-index: 7;
@@ -22,33 +22,33 @@
     pointer-events: auto;
     position: relative; display: flex; flex: 0 0 49px; width: 49px;
     flex-direction: column; align-items: center; border: 0; padding: 0 3px;
-    background: none; color: #bccbdf; touch-action: none; user-select: none;
+    background: none; color: var(--text-muted); touch-action: none; user-select: none;
 }
 .travel-cannon__person svg { width: 40px; height: 54px; pointer-events: none; transition: transform .2s, filter .2s; filter: drop-shadow(0 5px 5px #0006); }
-.travel-cannon__person span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; text-shadow: 0 2px 6px #000; }
-.travel-cannon__person[aria-pressed="true"] { color: #ffe3a4; }
-.travel-cannon__person[aria-pressed="true"] svg { filter: drop-shadow(0 0 6px #f1c47766) drop-shadow(0 5px 5px #0006); }
-.travel-cannon__person[aria-pressed="true"] i::after { content: '✓'; position: absolute; right: 1px; top: 0; font-size: 11px; color: #f1c477; }
+.travel-cannon__person span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.travel-cannon__person[aria-pressed="true"] { color: var(--accent-hover); }
+.travel-cannon__person[aria-pressed="true"] svg { filter: drop-shadow(0 0 6px rgba(242,107,74,.4)) drop-shadow(0 5px 5px #0003); }
+.travel-cannon__person[aria-pressed="true"] i::after { content: '✓'; position: absolute; right: 1px; top: 0; font-size: 11px; color: var(--accent); }
 .travel-cannon__person:hover svg { transform: translateY(-4px) rotate(-7deg); }
 .travel-cannon__person.is-dragging { opacity: .3; }
-.travel-cannon__add { position: absolute; left: 12px; top: 96px; z-index: 3; font-size: 11px; color: #b6c6db; }
+.travel-cannon__add { position: absolute; left: 12px; top: 96px; z-index: 3; font-size: 11px; color: var(--text-muted); }
 .travel-cannon__add summary { cursor: pointer; width: fit-content; padding: 4px 0; }
-.travel-cannon__add form { position: absolute; left: 0; bottom: 30px; width: 258px; padding: 14px; background: #17263bf5; border: 1px solid #536784; border-radius: 12px; box-shadow: 0 12px 28px #0005; }
+.travel-cannon__add form { position: absolute; left: 0; bottom: 30px; width: 258px; padding: 14px; background: rgba(255,255,255,.97); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 28px rgba(91,67,45,.16); }
 .travel-cannon__add label { display: block; margin-bottom: 5px; }
 .travel-cannon__add form > div { display: flex; gap: 6px; }
-.travel-cannon__add input { width: 100%; min-width: 0; border: 1px solid #60738c; border-radius: 7px; padding: 7px 9px; background: #132239; color: #eef3f8; }
-.travel-cannon__add form button { flex: 0 0 auto; border: 1px solid #8795a9; background: #34465e; border-radius: 7px; padding: 6px 10px; color: #eef3f8; }
-.travel-cannon__add form p { margin: 7px 0 0; color: #b6c6db; }
+.travel-cannon__add input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; background: var(--bg); color: var(--text); }
+.travel-cannon__add form button { flex: 0 0 auto; border: 1px solid var(--accent); background: var(--accent); border-radius: 7px; padding: 6px 10px; color: var(--on-accent); }
+.travel-cannon__add form p { margin: 7px 0 0; color: var(--text-muted); }
 .travel-cannon__scene { position: absolute; left: 0; top: 107px; width: 100%; height: 248px; }
 .travel-cannon__asset { position: absolute; right: 0; top: 0; width: 330px; height: 247.5px; border: 0; padding: 0; background: none; transform-origin: 60% 85%; touch-action: none; user-select: none; cursor: grab !important; }
 .travel-cannon__asset:disabled { cursor: wait !important; opacity: 1; }
 .travel-cannon__scene.is-moving { z-index: 6; }
 .travel-cannon__scene.is-moving .travel-cannon__asset { cursor: grabbing !important; }
 .travel-cannon__scene.is-moving img { filter: drop-shadow(0 22px 15px #0008) drop-shadow(0 0 10px #f1c47755); }
-.travel-cannon__reset, .travel-cannon__sound { position: absolute; top: -26px; border: 0; padding: 4px 0; background: none; color: #b9cadf; font-size: 11px !important; text-decoration: underline; text-underline-offset: 4px; }
+.travel-cannon__reset, .travel-cannon__sound { position: absolute; top: -26px; border: 0; padding: 4px 0; background: none; color: var(--text-muted); font-size: 11px !important; text-decoration: underline; text-underline-offset: 4px; }
 .travel-cannon__reset { left: 12px; }
 .travel-cannon__sound { right: 12px; }
-.travel-cannon__sound[aria-pressed="true"] { color: #ffdc98; }
+.travel-cannon__sound[aria-pressed="true"] { color: var(--accent-hover); }
 .travel-cannon__asset img { display: block; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 10px 12px #0006); transition: filter .2s; }
 .travel-cannon__asset:hover img, .travel-cannon__asset.is-drop-target img { filter: drop-shadow(0 0 18px #f1c47777) drop-shadow(0 12px 10px #0005); }
 .travel-cannon__asset:focus-visible { outline: none; }
@@ -59,14 +59,14 @@
 .travel-cannon__fuse { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .travel-cannon__ember { opacity: 0; filter: drop-shadow(0 0 5px #ffa332); }
 .travel-cannon.is-lighting .travel-cannon__ember { opacity: 1; }
-.travel-cannon__instruction { position: absolute; bottom: 30px; right: 0; width: 100%; margin: 0; text-align: center; color: #e4d5b7; font-size: 11px; text-shadow: 0 2px 6px #000; }
-.travel-cannon__skip { position: absolute; right: 8px; top: 90px; padding: 5px 0; border: 0; background: none; color: #f1c477; text-decoration: underline; font-size: 11px !important; }
-.travel-cannon__status { position: absolute; top: calc(100% - 23px); left: 0; right: 0; margin: 0; color: #b8c6d8; font-size: 10px; text-align: center; overflow-wrap: anywhere; text-shadow: 0 2px 6px #000; }
-.travel-cannon__status.is-error { color: #ffc5b5; }
+.travel-cannon__instruction { position: absolute; bottom: 30px; right: 0; width: 100%; margin: 0; text-align: center; color: var(--text-muted); font-size: 11px; }
+.travel-cannon__skip { position: absolute; right: 8px; top: 90px; padding: 5px 0; border: 0; background: none; color: var(--accent-hover); text-decoration: underline; font-size: 11px !important; }
+.travel-cannon__status { position: absolute; top: calc(100% - 23px); left: 0; right: 0; margin: 0; color: var(--text-muted); font-size: 10px; text-align: center; overflow-wrap: anywhere; }
+.travel-cannon__status.is-error { color: var(--error); }
 .travel-cannon-ghost { position: fixed; z-index: 160; width: 49px; height: 66px; transform: translate(-50%, -60%) rotate(-12deg); pointer-events: none; filter: drop-shadow(0 6px 12px #0007); }
 .travel-cannon-ghost svg { width: 100%; height: 100%; }
 .travel-cannon-flight { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 120; pointer-events: none; overflow: hidden; }
-.cannon-nearby { position: absolute; bottom: 24px; left: 24px; color: #c6d2e1; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.cannon-nearby { position: absolute; bottom: 24px; left: 24px; color: var(--sage); font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
 @keyframes travel-cannon-recoil { 0% { transform: scale(1.07,.93); } 9% { transform: translate(34px,10px) rotate(19deg) scale(.87,1.12); } 30% { transform: translate(-13px,-18px) rotate(-11deg) scale(1.1,.9); } 53% { transform: translate(7px,3px) rotate(6deg); } 73% { transform: translate(-3px,-5px) rotate(-3deg); } 100% { transform: none; } }
 .travel-cannon.is-firing .travel-cannon__asset { animation: travel-cannon-recoil .9s cubic-bezier(.2,.8,.3,1); }
 .cannon-game-vignette { position: fixed; inset: 0; z-index: 114; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, #10172700 28%, #030b1cb0 100%); }

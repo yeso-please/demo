@@ -277,7 +277,7 @@
         justify-content: center;
         border-radius: var(--radius-chip);
         border: 1px solid var(--accent-line);
-        background: rgba(17, 24, 39, .55);
+        background: rgba(255, 255, 255, .72);
         font-size: 30px;
         line-height: 1;
     }
@@ -312,8 +312,8 @@
         justify-content: center;
         overflow: hidden;
         background:
-            radial-gradient(circle at 50% 42%, rgba(65, 87, 124, .28), transparent 34%),
-            linear-gradient(145deg, #0B1220 0%, var(--bg) 58%, #18253A 100%);
+            radial-gradient(circle at 50% 42%, rgba(242, 107, 74, .16), transparent 34%),
+            linear-gradient(145deg, #FFFDF8 0%, var(--bg) 58%, #F2E4D1 100%);
     }
     .ink-splash {
         position: absolute;
@@ -325,20 +325,20 @@
         filter: blur(.2px);
         transform: rotate(-18deg);
         background:
-            radial-gradient(circle at 38% 35%, rgba(243, 196, 119, .48) 0 2%, transparent 2.7%),
-            radial-gradient(circle at 68% 18%, rgba(243, 196, 119, .22) 0 1.5%, transparent 2.3%),
-            radial-gradient(ellipse at 42% 46%, #405574 0 22%, #263852 55%, transparent 72%);
+            radial-gradient(circle at 38% 35%, rgba(242, 107, 74, .42) 0 2%, transparent 2.7%),
+            radial-gradient(circle at 68% 18%, rgba(242, 107, 74, .2) 0 1.5%, transparent 2.3%),
+            radial-gradient(ellipse at 42% 46%, #65A69E 0 22%, #2F7D75 55%, transparent 72%);
     }
     .ink-splash::before,
     .ink-splash::after {
         content: "";
         position: absolute;
         border-radius: 50%;
-        background: #647FA6;
+        background: #65A69E;
         opacity: .7;
     }
-    .ink-splash::before { width: 20px; height: 20px; top: 4%; right: 19%; box-shadow: 48px 36px 0 -5px #405574, -36px 80px 0 -7px #708DB7; }
-    .ink-splash::after { width: 10px; height: 10px; bottom: 14%; left: 8%; box-shadow: 28px 18px 0 2px #405574, 344px -20px 0 -2px #708DB7; }
+    .ink-splash::before { width: 20px; height: 20px; top: 4%; right: 19%; box-shadow: 48px 36px 0 -5px #2F7D75, -36px 80px 0 -7px #8CBDB4; }
+    .ink-splash::after { width: 10px; height: 10px; bottom: 14%; left: 8%; box-shadow: 28px 18px 0 2px #2F7D75, 344px -20px 0 -2px #8CBDB4; }
     .ink-splash--one { top: 4%; left: -180px; }
     .ink-splash--two { right: -210px; bottom: 2%; transform: rotate(28deg) scale(.76); opacity: .52; }
     .invite-route { position: absolute; inset: 0; pointer-events: none; opacity: .5; }
@@ -406,7 +406,7 @@
     .invite-cta:hover { background: #452b1d; transform: translateY(-2px); box-shadow: 0 9px 0 #b36b35; }
     .invite-cta:active { transform: translateY(4px); box-shadow: 0 3px 0 #b36b35; }
     .invite-card__hint { position: relative; margin-top: 15px; color: #a08069; font-size: 11px; }
-    .invite-skip { margin-top: 24px; color: rgba(245, 235, 221, .62); font-size: 12px; transition: color 180ms ease; }
+    .invite-skip { margin-top: 24px; color: var(--text-muted); font-size: 12px; transition: color 180ms ease; }
     .invite-skip:hover { color: var(--accent); }
     @keyframes letter-flight {
         0% { opacity: 0; transform: translate(58vw, -46vh) rotate(18deg) scale(.36); }

@@ -4,48 +4,30 @@
    ========================================================= */
 
 :root {
-    /* ----- Color · '깊은 밤과 작은 불빛' -----
-       배경은 붉은 갈색이 아닌 깊은 남청으로 두고, 지도와 기록 위의 호박빛만
-       따뜻하게 남긴다. 밤하늘 위에 여행의 흔적이 켜지는 인상을 만든다. */
-    --bg: #111827;
-    --surface: #1A2434;
-    --surface-alt: #243247;
-    --border: #35445A;
-    /* 지도 육지면 — 배경보다 뚜렷하게 밝다.
-       (밝은 팔레트 시절에는 이 값이 --bg 와 같아서 육지가 아예 보이지 않았다)
-       실측: 배경 대비 1.20 이면 덩어리로 뭉쳐 보인다 → 1.6 이상이 되도록 올렸다. */
-    --map-land: #2B3A50;
-    /* 지도 시군구 경계선.
-       어두운 면 위에서는 '밝은 선'을 그어야 하고, 밝은 바탕일 때보다 훨씬 진해야 한다.
-       실측: 0.26 은 육지 대비 1.72 로 250개 시군구가 한 덩어리로 보였다.
-       0.55 에서 경계가 또렷해지면서도 호박색 빛을 가리지 않는다. */
-    --map-stroke: rgba(166, 190, 218, 0.48);
-    --text: #EEF3F8;
-    --text-muted: #9EADC1;
-    /* 강조색 — 박명의 마지막 빛.
-       #FFB347 은 대비는 충분했지만(8.96:1) 배경과 따로 놀았다. 원인은 대비가 아니라
-       채도였다: 배경이 HSL(218°, 30%, 15%) 인데 강조색만 채도 100% 라 사탕색으로 튀었다.
-       색상각은 그대로 두고(36°) 채도를 78% 로 내려 같은 세계의 빛으로 만든다.
-       지도의 빛 번짐(--glow-color)과도 같은 계열이 되어 'UI 강조'와 '켜진 불'이 한 빛이 된다. */
-    --accent: #F3C477;
-    --accent-hover: #DEA653;
-    /* 칩 배경. 남색에 금색을 섞으면 색이 상쇄돼 회색이 된다 —
-       섞지 말고 같은 색상각을 어둡게 잡아야 따뜻함이 남는다. */
-    --accent-soft: #4B3B24;
-    --accent-line: #80623A;
-    /* 강조색 위에 얹는 글자색. 호박색은 밝아서 흰 글씨를 쓰면 대비가 무너진다
-       (#FFF 대비 약 1.8:1). 어두운 남청을 얹어야 읽힌다(9.57:1). */
-    --on-accent: #24150E;
-    --sage: #93C49D;
-    --sage-bg: #20362F;
-    --sage-border: #426458;
-    /* 어두운 바탕에서는 원래의 진한 빨강이 묻힌다 — 채도·명도를 올린다 */
-    --error: #FF8A80;
+    /* ----- Color · '햇살 코랄과 여행 크림' -----
+       편안한 종이빛 바탕 위에서 코랄은 발견과 행동을, 청록은 지도와 신뢰를 담당한다. */
+    --bg: #FFF8EE;
+    --surface: #FFFFFF;
+    --surface-alt: #F4EBDD;
+    --border: #E5D8C8;
+    --map-land: #E7DCCB;
+    --map-stroke: rgba(91, 111, 103, 0.58);
+    --text: #2D2926;
+    --text-muted: #746B63;
+    --accent: #F26B4A;
+    --accent-hover: #D95336;
+    --accent-soft: #FDE3D9;
+    --accent-line: #F2A38F;
+    --on-accent: #2B1711;
+    --sage: #2F7D75;
+    --sage-bg: #DDEFEA;
+    --sage-border: #8CBDB4;
+    --error: #B9382E;
 
     /* ----- 지도 빛 번짐 -----
        발견 후보를 '칠해진 면'이 아니라 '켜진 불'로 보이게 하는 값.
        map.html 의 <filter id="discovery-glow"> 가 참조한다. */
-    --glow-color: #FFD98A;
+    --glow-color: #FF9B72;
     --glow-blur: 11;
     --glow-opacity: 1;
 
@@ -410,21 +392,21 @@ body {
 
 .night-map-page {
     background:
-        radial-gradient(circle at 18% 12%, rgba(52, 82, 132, .28), transparent 36%),
-        radial-gradient(circle at 82% 88%, rgba(29, 52, 91, .26), transparent 42%),
+        radial-gradient(circle at 18% 12%, rgba(242, 107, 74, .13), transparent 36%),
+        radial-gradient(circle at 82% 88%, rgba(47, 125, 117, .12), transparent 42%),
         var(--bg);
 }
 .night-map-stage {
     background:
-        radial-gradient(ellipse at 50% 48%, #243653 0%, #18253B 52%, #0E1728 100%) !important;
-    border-color: rgba(151, 177, 220, .3) !important;
-    box-shadow: inset 0 0 90px rgba(0,0,0,.38), 0 22px 70px rgba(0,0,0,.4);
+        radial-gradient(ellipse at 50% 48%, #FFFDF8 0%, #F9F0E2 58%, #EFE0CA 100%) !important;
+    border-color: var(--border) !important;
+    box-shadow: inset 0 0 70px rgba(117, 84, 54, .06), 0 22px 60px rgba(91, 67, 45, .12);
 }
 .night-map-stage #region-search-input {
-    background: rgba(36, 50, 71, .94) !important;
+    background: rgba(255, 255, 255, .94) !important;
     color: var(--text) !important;
-    border-color: rgba(151, 177, 220, .32) !important;
-    box-shadow: 0 10px 28px rgba(0,0,0,.26);
+    border-color: var(--border) !important;
+    box-shadow: 0 10px 28px rgba(91, 67, 45, .10);
 }
 .night-map-stage #region-search-input::placeholder {
     color: var(--text-muted) !important;
@@ -437,7 +419,7 @@ body {
     box-shadow: 0 16px 36px rgba(0,0,0,.38), 0 0 0 1px rgba(243,196,119,.16);
 }
 .course-pick-shade {
-    background: linear-gradient(to top, rgba(17,24,39,.98), rgba(17,24,39,.3) 58%, rgba(17,24,39,.08));
+    background: linear-gradient(to top, rgba(45,41,38,.92), rgba(45,41,38,.22) 58%, rgba(45,41,38,.04));
 }
 .course-origin-badge {
     display: inline-flex;
@@ -446,7 +428,7 @@ body {
     padding: 2px 7px;
     border: 1px solid rgba(255,232,175,.46);
     border-radius: 999px;
-    background: rgba(17,24,39,.68);
+    background: rgba(45,41,38,.72);
     color: #FFE8AF;
     font-size: 10px;
     line-height: 1.6;

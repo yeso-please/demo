@@ -439,7 +439,7 @@
             overlays.push(casing);
 
             const line = new kakao.maps.Polyline({
-                path: positions, strokeWeight: 5, strokeColor: '#F3C477', strokeOpacity: 1, zIndex: 2,
+                path: positions, strokeWeight: 5, strokeColor: '#F26B4A', strokeOpacity: 1, zIndex: 2,
             });
             line.setMap(map);
             overlays.push(line);
