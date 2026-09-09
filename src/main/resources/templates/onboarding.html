@@ -27,12 +27,12 @@
             </div>
 
             <p class="invite-card__eyebrow">A SMALL INVITATION FOR YOU</p>
-            <h1 id="invite-title" class="invite-card__title">당신의 취향에 맞는<br/><em>여행지에 초대합니다</em></h1>
+            <h1 id="invite-title" class="invite-card__title">당신은 어떻게<br/><em>여행하는 사람인가요</em></h1>
             <div class="invite-card__rule" aria-hidden="true"></div>
             <p class="invite-card__copy">
-                기억에 남은 여행을 한 편 적어주세요.<br/>
-                지도에서 다녀온 지역을 고르고,<br/>
-                그곳에서 느낀 결을 편지처럼 남겨주세요.
+                열두 개의 질문에 답해주세요.<br/>
+                여행지는 우연으로 정해지지만,<br/>
+                그곳을 걷는 방식은 당신의 결을 따릅니다.
             </p>
 
             <div class="invite-card__signature">
@@ -40,20 +40,265 @@
                 <strong class="brand-wordmark">여행페이지 드림</strong>
             </div>
 
-            <a th:href="@{/login}" class="invite-cta">
-                <span>초대에 참여하기</span>
+            <button type="button" id="mbti-start" class="invite-cta">
+                <span>여행 성향 알아보기</span>
                 <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
-            </a>
-            <p class="invite-card__hint">로그인하고 여행의 다음 장을 열어보세요 · 약 1분</p>
+            </button>
+            <p class="invite-card__hint">로그인하지 않아도 끝까지 해볼 수 있어요 · 12문항 약 1분</p>
             </div>
         </div>
 
         <a th:href="@{/map}" class="invite-skip">편지는 나중에 열어볼게요 <span aria-hidden="true">↗</span></a>
     </section>
 
+    <!-- ===== 여행 MBTI 12문항 =====
+         문항·채점은 TravelMbtiService 가 단일 출처다. 화면은 받은 것을 그리기만 한다. -->
+    <section id="mbti-quiz" class="hidden flex-col gap-7 pt-2" aria-labelledby="mbti-quiz-title">
+        <div class="flex flex-col gap-2.5">
+            <div class="flex items-center justify-between gap-4">
+                <span class="font-caption text-caption text-text-muted">
+                    <span id="mbti-current">1</span> / <span th:text="${questions != null} ? ${#lists.size(questions)} : 12">12</span>
+                </span>
+                <a th:href="@{/map}" class="font-caption text-caption text-text-muted hover:text-primary transition-colors">나중에 할게요</a>
+            </div>
+            <div class="h-[3px] rounded-full bg-surface-alt overflow-hidden">
+                <div id="mbti-bar" class="h-full rounded-full bg-primary transition-all duration-300" style="width: 8%"></div>
+            </div>
+        </div>
+
+        <h2 id="mbti-quiz-title" class="sr-only">여행 성향 문항</h2>
+
+        <!-- 문항 하나가 .mbti-q 하나 — onboarding.js 가 한 번에 하나씩 보여준다 -->
+        <div th:each="q, stat : ${questions}" class="mbti-q hidden flex-col gap-6"
+             th:classappend="${stat.first} ? '' : ''">
+            <div class="flex flex-col gap-2">
+                <span class="font-caption text-caption text-primary"
+                      th:text="|${#numbers.formatInteger(q.number(), 2)} · ${axisLabels.get(q.axis())}|">01 · 일정</span>
+                <p class="font-display-title text-[28px] leading-snug text-text-primary" th:text="${q.question()}">문항</p>
+            </div>
+            <div class="flex flex-col gap-3">
+                <button type="button" class="mbti-a" data-pick="1">
+                    <span class="mbti-a__key">A</span>
+                    <span class="mbti-a__label" th:text="${q.answer1()}">1번 답</span>
+                    <span class="mbti-a__mark material-symbols-outlined" aria-hidden="true">check</span>
+                </button>
+                <button type="button" class="mbti-a" data-pick="2">
+                    <span class="mbti-a__key">B</span>
+                    <span class="mbti-a__label" th:text="${q.answer2()}">2번 답</span>
+                    <span class="mbti-a__mark material-symbols-outlined" aria-hidden="true">check</span>
+                </button>
+            </div>
+        </div>
+
+        <button type="button" id="mbti-back"
+                class="self-start font-caption text-caption text-text-muted hover:text-text-primary transition-colors">← 이전</button>
+    </section>
+
+    <!-- ===== 경험 태그 · 제외 조건 =====
+         유형은 사람의 결, 태그는 장소를 고르는 값이라 둘 다 받는다(PRD F-01). -->
+    <section id="mbti-tags" class="hidden flex-col gap-6 pt-2" aria-labelledby="mbti-tags-title">
+        <div class="flex flex-col gap-2">
+            <span class="font-caption text-caption text-primary">마지막 · 좋아하는 경험</span>
+            <h2 id="mbti-tags-title" class="font-display-title text-[28px] leading-snug text-text-primary">이런 곳이라면 걸어볼 만해요</h2>
+            <p class="font-body-main text-caption text-text-muted">
+                도착한 지역에서 장소를 고를 때 쓰는 태그예요. 최대 5개.
+                <span class="text-primary font-semibold"><span id="mbti-tag-count">0</span> / 5</span>
+            </p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+            <button type="button" th:each="t : ${experienceTags}" class="pref-chip tag-btn"
+                    th:attr="data-tag=${t}" th:classappend="${pickedTags.contains(t)} ? ' picked' : ''"
+                    th:text="${t}">태그</button>
+        </div>
+
+        <div class="h-px bg-border"></div>
+
+        <div class="flex flex-col gap-2.5">
+            <span class="font-caption text-caption text-text-muted">빼고 싶은 게 있다면 (선택)</span>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" th:each="e : ${excludeOptions}" class="pref-chip ex-btn"
+                        th:attr="data-ex=${e}" th:classappend="${pickedExcludes.contains(e)} ? ' picked' : ''"
+                        th:text="${e}">제외</button>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 pt-1">
+            <button type="button" id="mbti-tags-back"
+                    class="font-caption text-caption text-text-muted hover:text-text-primary transition-colors">← 이전</button>
+            <button type="button" id="mbti-tags-next" class="btn-primary">
+                결과 보기
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ===== 결과 — 여행 MBTI 16유형 ===== -->
+    <section id="mbti-result" class="hidden flex-col gap-4 pt-2" aria-labelledby="mbti-label">
+        <div class="mbti-result-card">
+            <div class="flex items-center gap-3.5">
+                <span id="mbti-emoji" class="mbti-result-card__emoji">🧭</span>
+                <span class="flex flex-col min-w-0">
+                    <span id="mbti-code" class="font-caption text-caption text-primary font-bold tracking-[0.18em]">ENFP</span>
+                    <span id="mbti-label" class="font-display-title text-[28px] leading-tight text-text-primary">유형 이름</span>
+                </span>
+            </div>
+            <p id="mbti-tagline" class="font-body-main text-body text-text-muted mt-3.5">한 줄 설명</p>
+        </div>
+
+        <div class="bg-surface border border-border rounded-card p-5 flex flex-col gap-3">
+            <span class="font-caption text-caption text-text-muted">이 유형으로 코스를 짤 때 먼저 담는 것</span>
+            <p id="mbti-style" class="font-body-main text-body text-text-primary">성향 키워드</p>
+            <div class="h-px bg-border"></div>
+            <span class="font-caption text-caption text-text-muted">여기에 직접 고른 태그</span>
+            <div id="mbti-result-tags" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <!-- 랜덤과의 경계를 여기서 못박는다 (제품 원칙 1) -->
+        <div class="bg-surface border border-border rounded-card p-4 flex gap-3">
+            <span class="material-symbols-outlined text-primary text-[20px] shrink-0">info</span>
+            <p class="font-body-main text-caption text-text-muted leading-relaxed">
+                <b class="text-text-primary">지역은 유형과 무관하게 랜덤으로 정해져요.</b><br/>
+                유형은 도착한 지역 <b class="text-text-primary">안에서 코스를 짤 때</b>와 친구들과의 취향 조율에 쓰입니다.
+            </p>
+        </div>
+
+        <p id="mbti-signup-note" class="hidden bg-accent-soft border border-border rounded-card p-4 font-body-main text-caption text-text-primary leading-relaxed">
+            지금 결과는 이 브라우저에만 있어요.
+            <a th:href="@{/signup}" class="text-primary underline">가입하면</a> 계정에 저장되고 친구와 함께 계획할 때도 쓰입니다.
+        </p>
+
+        <a th:href="@{/map}" class="btn-primary w-full h-[52px] text-[16px]">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">explore</span>
+            전국 지도로 가기
+        </a>
+        <button type="button" id="mbti-retry"
+                class="self-center font-caption text-caption text-text-muted hover:text-text-primary transition-colors">다시 검사하기</button>
+    </section>
+
 </main>
 
+<script th:src="@{/js/onboarding.js}"></script>
+
 <style>
+    /* 초대장을 감출 때 Tailwind 의 .hidden 이 .invite-landing 의 display:flex 를 이기도록.
+       둘은 명시도가 같고 이 블록이 뒤에 오므로, 아이디를 붙여 올려두지 않으면 편지가 사라지지 않는다. */
+    #mbti-intro.hidden { display: none !important; }
+
+    /* ===== 문항 · 태그 · 결과 =====
+       값은 전부 tokens.css 변수를 참조한다 — 팔레트를 바꾸면 여기도 함께 바뀐다 */
+    .mbti-a {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        min-height: 72px;
+        padding: 16px 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        text-align: left;
+        cursor: pointer;
+        transition: border-color var(--transition), background var(--transition), transform var(--transition);
+    }
+    .mbti-a:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+    .mbti-a.picked { background: var(--accent-soft); border-color: var(--accent); }
+    .mbti-a__key {
+        flex-shrink: 0;
+        width: 26px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-chip);
+        background: var(--surface-alt);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        transition: background var(--transition), color var(--transition);
+    }
+    .mbti-a.picked .mbti-a__key { background: var(--accent); color: var(--on-accent); }
+    .mbti-a__label { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
+    .mbti-a__mark {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-chip);
+        font-size: 14px;
+        color: transparent;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .mbti-a.picked .mbti-a__mark { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+    /* 태그 · 제외 조건 칩 — 고른 것만 강조되면 된다(순위를 매기지 않는다) */
+    .pref-chip {
+        padding: 9px 18px;
+        border-radius: var(--radius-chip);
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 14px;
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .pref-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .pref-chip.picked { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    /* 5개를 다 고른 뒤에는 못 고르는 칩을 눌러보기 전에 알 수 있게 */
+    .pref-chip.full { opacity: .45; }
+
+    .mbti-result-card {
+        position: relative;
+        overflow: hidden;
+        padding: 28px 24px 24px;
+        border: 1px solid var(--accent-line);
+        border-radius: var(--radius-card);
+        background: linear-gradient(160deg, var(--accent-soft) 0%, var(--surface) 64%);
+    }
+    .mbti-result-card::after {
+        content: "";
+        position: absolute;
+        right: -50px;
+        top: -70px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 217, 138, .22), transparent 68%);
+    }
+    .mbti-result-card__emoji {
+        flex-shrink: 0;
+        width: 62px;
+        height: 62px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-chip);
+        border: 1px solid var(--accent-line);
+        background: rgba(17, 24, 39, .55);
+        font-size: 30px;
+        line-height: 1;
+    }
+    .result-tag {
+        padding: 4px 14px;
+        border-radius: var(--radius-chip);
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 13px;
+    }
+    .result-tag--exclude { color: var(--text-muted); }
+    .sr-only {
+        position: absolute;
+        width: 1px; height: 1px;
+        padding: 0; margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap; border: 0;
+    }
+
     /* 01 들어오기 — 잉크 번짐 위에 놓인 여행 초대장 */
     .invite-landing {
         position: relative;

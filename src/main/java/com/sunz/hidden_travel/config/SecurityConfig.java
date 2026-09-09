@@ -58,6 +58,9 @@ public class SecurityConfig {
                 // 내 발견 지도는 세션에 담긴 방문 이력만 보여준다 — 온보딩이 로그인을 요구하지 않으므로
                 // 이 화면도 열려 있어야 한다. 아래 "/my/**" 인증 규칙보다 먼저 와야 적용된다.
                 .requestMatchers("/my/discoveries", "/nearby").permitAll()
+                // 여행 계획은 비회원도 초안을 만들 수 있다(세션 소유) — 목록도 함께 열어둔다.
+                // 남의 계획은 TripPlanController 가 소유자·세션으로 막는다.
+                .requestMatchers("/my/trips").permitAll()
                 .requestMatchers(HttpMethod.GET, "/review/*").permitAll()   // 후기 상세(공유 링크)
                 // 코스 만들기는 로그인 없이 둘러보고 담아볼 수 있다(저장할 때만 로그인).
                 // 담은 내용은 course.js 가 sessionStorage 에 보관했다가 로그인 후 복원한다.

@@ -695,6 +695,20 @@ public class DayPlanService {
         return haversineKm(a.lat(), a.lng(), b.lat(), b.lng()) * ROAD_FACTOR;
     }
 
+    /**
+     * 두 좌표 사이 도로 거리 추정(km). 여러 날 계획({@link TripPlanService})도 같은 기준으로 재야
+     * 하루 코스와 여러 날 코스의 이동 추정이 어긋나지 않는다.
+     */
+    public static double estimateRoadKm(double lat1, double lng1, double lat2, double lng2) {
+        return haversineKm(lat1, lng1, lat2, lng2) * ROAD_FACTOR;
+    }
+
+    /** 도로 거리 추정에서 나온 이동 시간(분). 실측이 아니라 추정이며 화면에 그렇게 밝힌다 */
+    public static int estimateMinutes(double lat1, double lng1, double lat2, double lng2) {
+        double km = estimateRoadKm(lat1, lng1, lat2, lng2);
+        return (int) Math.max(1, Math.round(km / AVG_SPEED_KMH * 60));
+    }
+
     private static double haversineKm(double lat1, double lng1, double lat2, double lng2) {
         final double earthRadiusKm = 6371.0;
         double dLat = Math.toRadians(lat2 - lat1);

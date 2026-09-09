@@ -38,7 +38,8 @@
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-card-padding pb-32 stagger-fade-in bg-background md:bg-surface">
+        <!-- 하단 고정 액션이 '여행 조건 폼'을 품으면서 높이가 커졌다 — 가려지지 않게 여백을 함께 키운다 -->
+        <div class="flex-1 overflow-y-auto p-card-padding pb-[280px] stagger-fade-in bg-background md:bg-surface">
             <!-- AI Summary -->
             <div class="bg-accent-soft p-6 rounded border border-border mb-section-gap">
                 <div class="flex items-center gap-2 mb-3">
@@ -98,10 +99,11 @@
 
         <!-- Fixed Bottom Action: 하루 보내기(주) + 지역 상세(보조) -->
         <div class="absolute bottom-0 left-0 w-full p-4 bg-surface/90 backdrop-blur border-t border-border z-30 flex flex-col gap-2">
+            <div th:if="${dayPlanAvailable}" th:replace="~{fragments/layout :: tripStart(${sigCd}, 'panel')}"></div>
             <a th:if="${dayPlanAvailable}" th:href="@{/course(sigCd=${sigCd}, auto=true)}"
-               class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
-                이 지역에서 하루 보내기
+               class="w-full h-[44px] bg-surface border border-border hover:border-primary text-text-primary font-body-main rounded flex items-center justify-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">wb_twilight</span>
+                하루만 훑어보기
             </a>
             <a th:href="@{/region(sigCd=${sigCd})}"
                class="w-full h-[44px] bg-surface border border-border hover:border-primary text-text-primary font-body-main rounded flex items-center justify-center gap-2 transition-colors">

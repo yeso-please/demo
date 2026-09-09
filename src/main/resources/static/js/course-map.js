@@ -193,7 +193,17 @@
         clearOverlays();
 
         const list = stops();
-        if (emptyEl) emptyEl.style.display = list.length ? 'none' : '';
+        // 한 곳만 담긴 상태에서는 연결할 선이 없으므로 안내를 유지한다.
+        // 기존에는 장소가 1곳만 있어도 안내가 사라져 빈 지도처럼 보였다.
+        if (emptyEl) {
+            emptyEl.style.display = list.length > 1 ? 'none' : '';
+            const label = emptyEl.querySelector('.course-map-empty__label');
+            if (label) {
+                label.textContent = list.length === 1
+                    ? '한 곳 더 담으면 동선이 여기에 그려져요'
+                    : '장소를 담으면 동선이 여기에 그려져요';
+            }
+        }
         if (!list.length) return;
 
         const positions = list.map((s) => new kakao.maps.LatLng(s.lat, s.lng));

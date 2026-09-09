@@ -98,13 +98,260 @@
     .course-gallery-track { animation: none; }
 }
 
-/* ----- 무작위(룰렛) 버튼: 돌아가는 동안 아이콘 회전 ----- */
-#map-shuffle.is-spinning .material-symbols-outlined {
-    animation: spin 0.7s linear infinite;
-}
+/* ----- 무작위 발견: 지도에 다트 던지기 -----
+   룰렛으로 훑다 멈추는 연출은 '뽑기'로 읽혀서, 잘 만들수록 결과에 근거가 없다는
+   사실만 커졌다. 다트는 같은 무작위라도 던진 사람이 있어 '내가 정했다'가 된다.
+   고르는 로직은 그대로 무작위이므로 버튼 문구도 다트라고 그대로 말한다. */
+
 #map-shuffle:disabled {
     opacity: 0.75;
     cursor: default;
+}
+/* 다트가 나는 동안 지도를 아주 살짝 죽여 시선을 다트로 모은다.
+   0.72 까지 내리면 '꺼진 것'처럼 보여서, 눈치채지 못할 만큼만 내린다. */
+#map-base {
+    transition: opacity 260ms ease-out;
+}
+.korea-map.is-throwing #map-base {
+    opacity: .86;
+}
+
+#map-shot {
+    pointer-events: none;
+    opacity: 0;
+}
+#map-shot.is-active {
+    opacity: 1;
+}
+
+/* 날아가는 사람 — 지도의 '켜진 불'과 같은 호박빛 실루엣으로 두고,
+   목도리만 한 톤 밝게 빼서 진행 방향과 속도를 읽히게 한다.
+   작게 줄었을 때 뭉개지지 않도록 팔다리는 굵은 stroke 로 그린다. */
+.flier {
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(255, 217, 138, .55));
+}
+.flier__head,
+.flier__body {
+    fill: var(--accent);
+}
+.flier__limb {
+    stroke: var(--accent);
+    stroke-width: 3.4;
+    stroke-linecap: round;
+    fill: none;
+}
+.flier__scarf {
+    fill: #FFE8AF;
+    opacity: .92;
+}
+
+/* 버둥거림 — 이게 있고 없고가 '날아가는 사람'과 '날아가는 물체'를 가른다.
+   넷의 주기와 위상을 전부 어긋나게 줘야 팔다리가 따로 논다.
+   나는 동안에만 돌고(is-flying), 착지하면 즉시 멎는다. */
+@keyframes flail-a { 0%,100% { transform: rotate(-26deg); } 50% { transform: rotate(22deg); } }
+@keyframes flail-b { 0%,100% { transform: rotate(18deg); }  50% { transform: rotate(-30deg); } }
+@keyframes flail-c { 0%,100% { transform: rotate(24deg); }  50% { transform: rotate(-16deg); } }
+@keyframes flail-d { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(28deg); } }
+@keyframes scarf-flutter { 0%,100% { transform: rotate(-7deg) scaleX(1); } 50% { transform: rotate(9deg) scaleX(1.12); } }
+
+.flier.is-flying .flier__limb-g--a { animation: flail-a 210ms ease-in-out infinite; }
+.flier.is-flying .flier__limb-g--b { animation: flail-b 260ms ease-in-out infinite; }
+.flier.is-flying .flier__limb-g--c { animation: flail-c 190ms ease-in-out infinite; }
+.flier.is-flying .flier__limb-g--d { animation: flail-d 240ms ease-in-out infinite; }
+.flier.is-flying .flier__scarf-g   { animation: scarf-flutter 300ms ease-in-out infinite; }
+
+/* ----- 대포 버튼 -----
+   상자 안의 아이콘이 아니라 대포 자체가 버튼이다. 배경도 테두리도 없이
+   지도 위에 놓인 물건으로 보여야 '누른다'가 아니라 '쏜다'가 된다. */
+.cannon-btn {
+    background: none;
+    border: 0;
+    padding: 4px 6px 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    line-height: 1;
+    transition: transform 200ms cubic-bezier(.2, .9, .3, 1);
+}
+.cannon-btn:disabled {
+    cursor: default;
+}
+.cannon-btn__label {
+    font-size: 11px;
+    letter-spacing: .02em;
+    color: var(--text-muted);
+    transition: color 200ms ease;
+}
+.cannon-btn:hover .cannon-btn__label {
+    color: var(--accent);
+}
+/* 배경이 없으니 기본 포커스 링이 안 보인다 — 대포 자체에 링을 씌운다 */
+.cannon-btn:focus-visible {
+    outline: none;
+}
+.cannon-btn:focus-visible .cannon {
+    /* drop-shadow 에는 spread 인자가 없다 — 링 대신 겹친 글로우로 테를 만든다 */
+    filter: drop-shadow(0 0 2px var(--accent)) drop-shadow(0 0 5px var(--accent))
+            drop-shadow(0 0 14px var(--glow-color));
+}
+
+.cannon {
+    overflow: visible;
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .45));
+    transition: filter 220ms ease;
+}
+.cannon-btn:hover .cannon {
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .45)) drop-shadow(0 0 12px rgba(255, 217, 138, .5));
+}
+.cannon__barrel rect {
+    fill: var(--accent);
+}
+.cannon__mouth {
+    fill: var(--accent-hover);
+}
+.cannon__carriage {
+    fill: var(--accent-hover);
+}
+.cannon__wheel {
+    fill: var(--surface);
+    stroke: var(--accent);
+    stroke-width: 2.6;
+}
+.cannon__spokes line {
+    stroke: var(--accent);
+    stroke-width: 1.6;
+    opacity: .7;
+}
+.cannon__hub {
+    fill: var(--accent);
+}
+/* 바퀴가 닿는 그림자. 이게 없으면 대포가 공중에 뜬 스티커로 보인다. */
+.cannon__ground {
+    fill: #05090F;
+    opacity: .35;
+}
+
+/* 조준: 호버하면 포신만 살짝 들린다. 포대까지 움직이면 버튼이 흔들린 것으로 읽힌다. */
+.cannon__barrel {
+    transition: transform 220ms cubic-bezier(.2, .9, .3, 1);
+}
+.cannon-btn:hover .cannon__barrel {
+    transform: translate(1.5px, -2px);
+}
+
+/* 반동: 포신은 포신 축(-28°) 방향으로 밀리고, 대포 전체는 뒤로 젖혀졌다 돌아온다. */
+@keyframes cannon-recoil {
+    0%   { transform: translate(0, 0); }
+    10%  { transform: translate(-9px, 4.8px); }
+    50%  { transform: translate(2.5px, -1.3px); }
+    100% { transform: translate(0, 0); }
+}
+@keyframes cannon-jolt {
+    0%   { transform: translate(0, 0) rotate(0); }
+    12%  { transform: translate(-3px, 0) rotate(-9deg); }
+    42%  { transform: translate(1px, 0) rotate(3deg); }
+    68%  { transform: translate(-.5px, 0) rotate(-1deg); }
+    100% { transform: translate(0, 0) rotate(0); }
+}
+.cannon-btn.is-throwing .cannon__barrel {
+    animation: cannon-recoil 560ms cubic-bezier(.2, .9, .3, 1);
+}
+.cannon-btn.is-throwing .cannon {
+    animation: cannon-jolt 560ms cubic-bezier(.2, .9, .3, 1);
+    transform-origin: 15px 33px;   /* 바퀴 축을 중심으로 젖혀진다 */
+}
+
+/* 날아간 궤적에 남는 꼬리 — 곡선 비행을 눈이 따라가게 만드는 장치.
+   끝으로 갈수록 가늘어져야 '지나간 자리'로 읽혀서 stroke-linecap 을 둥글게 둔다. */
+.shot-trail {
+    fill: none;
+    stroke: var(--glow-color);
+    stroke-width: 4.6;
+    stroke-linecap: round;
+    opacity: 0;
+    filter: drop-shadow(0 0 9px var(--glow-color));
+}
+
+/* 착탄 파편 — 사방으로 튀었다가 사라진다 */
+.shot-spark {
+    stroke: #FFF3CF;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    opacity: 0;
+}
+
+/* 맞는 순간의 흰 섬광. 링보다 짧고 강하게 터져야 '퍽' 하고 박힌 느낌이 난다. */
+.shot-flash {
+    fill: #FFFFFF;
+    opacity: 0;
+}
+
+/* 발사 화염 — 포구에서 터지는 빛. 짧고 크게 터졌다 사라져야 '쏘았다'로 읽힌다. */
+.muzzle-flash {
+    fill: #FFF6DC;
+    opacity: 0;
+}
+.muzzle-line {
+    stroke: var(--glow-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0;
+}
+
+/* 포연 — 궤적 앞쪽에 뭉게뭉게 남는다. 호박빛이 아니라 흐린 회청색이라야 연기로 보인다. */
+.shot-smoke {
+    fill: #6B7A90;
+    opacity: 0;
+}
+
+/* 착탄 먼지 — 위로 퍼지는 링과 달리 지면을 따라 납작하게 번진다.
+   이 하나가 '떨어져서 터졌다'와 '꽂혔다'를 가른다. */
+.shot-dust {
+    fill: none;
+    stroke: #C7B9A2;
+    stroke-width: 2.4;
+    opacity: 0;
+}
+
+/* 착탄 충격으로 지도가 튄다. 대포는 다트보다 무거우므로 진폭을 키우되,
+   4px 를 넘기면 화면 전체가 흔들려 멀미가 난다. */
+@keyframes shot-shake {
+    0%   { transform: translate(0, 0); }
+    14%  { transform: translate(4px, -3.4px); }
+    32%  { transform: translate(-3.4px, 2.6px); }
+    52%  { transform: translate(2.4px, 1.8px); }
+    74%  { transform: translate(-1.2px, -.9px); }
+    100% { transform: translate(0, 0); }
+}
+.korea-map.is-struck {
+    animation: shot-shake 420ms cubic-bezier(.36,.07,.19,.97);
+}
+
+/* 명중 순간의 충격파. 여러 겹을 시간차로 퍼뜨리면 한 겹일 때보다 '박혔다'로 읽힌다. */
+.shot-impact__ring {
+    fill: none;
+    stroke: var(--glow-color);
+    stroke-width: 2;
+    opacity: 0;
+}
+.shot-impact__ring--wide {
+    stroke: #FFFFFF;
+    stroke-width: 1.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cannon-btn.is-throwing .cannon,
+    .cannon-btn.is-throwing .cannon__barrel { animation: none; }
+    .flier.is-flying .flier__limb-g--a,
+    .flier.is-flying .flier__limb-g--b,
+    .flier.is-flying .flier__limb-g--c,
+    .flier.is-flying .flier__limb-g--d,
+    .flier.is-flying .flier__scarf-g { animation: none; }
+    .korea-map.is-throwing #map-base { opacity: 1; }
+    .korea-map.is-struck { animation: none; }
 }
 
 /* ----- 입력 필드 포커스(회원가입 등) ----- */

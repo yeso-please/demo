@@ -1,5 +1,5 @@
 // 시군구 SVG 지도 + 지역 패널
-// 흐름: 로딩 → 지도 렌더 → 호버/클릭/키보드/검색/무작위 → fetch(/api/regions) → 패널 슬라이드 인
+// 흐름: 로딩 → 지도 렌더 → 호버/클릭/키보드/검색/다트 → fetch(/api/regions) → 패널 슬라이드 인
 (function () {
     'use strict';
 
@@ -113,15 +113,21 @@
         const flash = document.getElementById('map-reveal-flash');
         if (flash) retrigger(flash, 'active');
 
+        const regionController = new AbortController();
+        const regionTimeout = setTimeout(() => regionController.abort(), 10000);
         try {
-            const res = await fetch('/api/regions/' + encodeURIComponent(sigCd));
+            const res = await fetch('/api/regions/' + encodeURIComponent(sigCd), { signal: regionController.signal });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             fillPanel(data, sigCd);
             openPanel();
             showPicks(false);   // 지역을 골랐으면 지도에 집중
+            return true;
         } catch (err) {
             console.error('[map] 지역 정보 로드 실패:', err);
+            return false;
+        } finally {
+            clearTimeout(regionTimeout);
         }
     }
 
@@ -176,6 +182,15 @@
         setShow(courseWrap, points.length > 0);
 
         document.getElementById('panel-go').setAttribute('href', '/region?sigCd=' + encodeURIComponent(sigCd));
+
+        // '이 지역으로 여행 떠나기' — 폼의 sigCd 를 지금 연 지역으로 맞춘다.
+        // 자동 코스를 못 짜는 지역에서는 감춘다(빈 계획이 만들어지는 걸 막는다).
+        const tripForm = panel.querySelector('.trip-start');
+        if (tripForm) {
+            const sigInput = tripForm.querySelector('.trip-start__sig');
+            if (sigInput) sigInput.value = sigCd;
+            tripForm.classList.toggle('hidden', data.dayPlanAvailable === false);
+        }
 
         // '이 지역에서 하루 보내기' — 코스를 조립할 수 있는 지역에서만 내보낸다.
         // 눌러도 아무것도 안 나오는 버튼은 지역을 발견한 순간의 신뢰를 깎는다.
@@ -448,22 +463,18 @@
         list.classList.add('picks-auto-track');
     }
 
-    /* ---------- 무작위로 한 곳 보기 (룰렛) ----------
-       여러 지역을 빠르게 훑다가 점점 느려지며 한 곳에 멈춘다.
-       지금은 저평가 지수가 없어 단순 무작위. (지수 도입 시 가중 샘플링으로 교체) */
+    /* ---------- 무작위로 한 곳 보기 (대포) ----------
+       대포로 쏜 사람이 포물선을 그리며 날아가 떨어지고, 떨어진 지역에 불이 켜진다.
+       고르는 방식은 예전 룰렛과 똑같은 단순 무작위다 — 연출만 바꿨다.
+       (저평가 지수가 생기면 가중 샘플링으로 교체할 자리) */
 
-    const SPIN_STEPS = 26;      // 훑고 지나가는 지역 수
-    const SPIN_MIN_MS = 45;     // 가장 빠를 때 간격
-    const SPIN_MAX_MS = 430;    // 마지막 즈음 간격
-    let spinning = false;
+    const SHOT_FLIGHT_MS = 980;   // 포구를 떠나 땅에 닿기까지
+    const SHOT_SETTLE_MS = 620;   // 떨어진 뒤 반동이 잦아들기까지
+    const SHOT_HOLD_MS   = 900;   // 결과를 보는 동안 그 자리에 두는 시간
+    let throwing = false;
+    let shotFade = null;          // 페이드아웃(다음 발사 때 취소해야 한다)
 
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-    /** 끝으로 갈수록 느려지는 간격 (ease-out) */
-    function spinDelay(step) {
-        const t = step / SPIN_STEPS;
-        return SPIN_MIN_MS + Math.pow(t, 3) * (SPIN_MAX_MS - SPIN_MIN_MS);
-    }
 
     /**
      * 최종 착지 지역. 관광지가 적재된 지역 중에서 고른다
@@ -485,16 +496,253 @@
         }
     }
 
+    /** 떨어질 좌표(viewBox 기준). 늘 정중앙이면 기계적으로 보여 살짝만 흔든다. */
+    function shotPoint(sigCd) {
+        const b = boundsByCode[sigCd];
+        if (!b) return { x: VIEW_W / 2, y: VIEW_H / 2 };
+        const cx = (b[0][0] + b[1][0]) / 2;
+        const cy = (b[0][1] + b[1][1]) / 2;
+        const jx = (b[1][0] - b[0][0]) * 0.08;
+        const jy = (b[1][1] - b[0][1]) * 0.08;
+        return {
+            x: cx + (Math.random() * 2 - 1) * jx,
+            y: cy + (Math.random() * 2 - 1) * jy,
+        };
+    }
+
+    /** 2차 베지에 위의 한 점. 다트와 꼬리가 완전히 같은 곡선을 지나야 한다. */
+    function bezier(a, c, b, u) {
+        const m = 1 - u;
+        return {
+            x: m * m * a.x + 2 * m * u * c.x + u * u * b.x,
+            y: m * m * a.y + 2 * m * u * c.y + u * u * b.y,
+        };
+    }
+
+    /** 명중 순간의 충격파. 여러 겹을 시간차로 퍼뜨려야 '박혔다'로 읽힌다. */
+    function shotImpact(t) {
+        const rings = document.querySelectorAll('#shot-impact .shot-impact__ring');
+        const spread = [30, 52, 74];
+        rings.forEach((ring, i) => {
+            ring.animate([
+                { transform: `translate(${t.x}px, ${t.y}px) scale(2)`, opacity: i === 0 ? 1 : .55 },
+                { transform: `translate(${t.x}px, ${t.y}px) scale(${spread[i] || 60})`, opacity: 0 },
+            ], {
+                duration: 460 + i * 170,
+                delay: i * 70,
+                easing: 'cubic-bezier(.12,.9,.25,1)',
+                fill: 'forwards',
+            });
+        });
+
+        const flash = document.getElementById('shot-flash');
+        if (flash) {
+            flash.animate([
+                { transform: `translate(${t.x}px, ${t.y}px) scale(.4)`, opacity: .95 },
+                { transform: `translate(${t.x}px, ${t.y}px) scale(2.6)`, opacity: 0 },
+            ], { duration: 260, easing: 'ease-out', fill: 'forwards' });
+        }
+
+        // 지면을 따라 납작하게 번지는 먼지 — 위로 퍼지는 링과 달리 '떨어져 터졌다'로 읽힌다
+        const dust = document.getElementById('shot-dust');
+        if (dust) {
+            dust.animate([
+                { transform: `translate(${t.x}px, ${t.y}px) scale(3)`, opacity: .75 },
+                { transform: `translate(${t.x}px, ${t.y}px) scale(40)`, opacity: 0 },
+            ], { duration: 720, easing: 'cubic-bezier(.1,.85,.25,1)', fill: 'forwards' });
+        }
+
+        // 파편 14 개를 방사로 뿌린다. 길이·거리를 조금씩 흩어야 규칙적으로 안 보인다.
+        const box = document.getElementById('shot-sparks');
+        if (box) {
+            box.innerHTML = '';
+            for (let i = 0; i < 14; i++) {
+                const a = (Math.PI * 2 * i) / 14 + Math.random() * 0.35;
+                const near = 9, far = 38 + Math.random() * 34;
+                const ln = document.createElementNS(SVG_NS, 'line');
+                ln.setAttribute('class', 'shot-spark');
+                ln.setAttribute('x1', (t.x + Math.cos(a) * near).toFixed(1));
+                ln.setAttribute('y1', (t.y + Math.sin(a) * near).toFixed(1));
+                ln.setAttribute('x2', (t.x + Math.cos(a) * (near + 9)).toFixed(1));
+                ln.setAttribute('y2', (t.y + Math.sin(a) * (near + 9)).toFixed(1));
+                box.appendChild(ln);
+                ln.animate([
+                    { transform: 'translate(0, 0)', opacity: 1 },
+                    { transform: `translate(${Math.cos(a) * far}px, ${Math.sin(a) * far}px)`, opacity: 0 },
+                ], { duration: 380 + Math.random() * 220, easing: 'cubic-bezier(.1,.8,.3,1)', fill: 'forwards' });
+            }
+        }
+    }
+
+    /** 포구 화염 — 짧고 크게 터졌다 사라진다 */
+    function muzzleBlast(L, aim) {
+        const flash = document.getElementById('muzzle-flash');
+        const box = document.getElementById('shot-muzzle');
+        if (flash) {
+            flash.animate([
+                { transform: `translate(${L.x}px, ${L.y}px) scale(.3)`, opacity: 1 },
+                { transform: `translate(${L.x}px, ${L.y}px) scale(3.2)`, opacity: 0 },
+            ], { duration: 300, easing: 'cubic-bezier(.1,.85,.3,1)', fill: 'forwards' });
+        }
+        if (!box) return;
+        box.querySelectorAll('.muzzle-line').forEach((n) => n.remove());
+        // 포신이 향한 쪽으로만 화염이 뻗는다 — 사방으로 뿌리면 폭발이지 발사가 아니다
+        for (let i = 0; i < 7; i++) {
+            const a = aim + (Math.random() - .5) * 1.1;
+            const far = 46 + Math.random() * 40;
+            const ln = document.createElementNS(SVG_NS, 'line');
+            ln.setAttribute('class', 'muzzle-line');
+            ln.setAttribute('x1', L.x.toFixed(1));
+            ln.setAttribute('y1', L.y.toFixed(1));
+            ln.setAttribute('x2', (L.x + Math.cos(a) * 16).toFixed(1));
+            ln.setAttribute('y2', (L.y + Math.sin(a) * 16).toFixed(1));
+            box.appendChild(ln);
+            ln.animate([
+                { transform: 'translate(0, 0)', opacity: 1 },
+                { transform: `translate(${Math.cos(a) * far}px, ${Math.sin(a) * far}px)`, opacity: 0 },
+            ], { duration: 280 + Math.random() * 160, easing: 'cubic-bezier(.1,.85,.3,1)', fill: 'forwards' });
+        }
+    }
+
+    /** 포연 — 궤적 앞쪽에 뭉게뭉게 남는다 */
+    function trailSmoke(pts) {
+        const box = document.getElementById('shot-smoke');
+        if (!box) return;
+        box.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+            const pt = pts[Math.round((i + 1) / 8 * (pts.length - 1))];
+            if (!pt) continue;
+            const c = document.createElementNS(SVG_NS, 'circle');
+            c.setAttribute('class', 'shot-smoke');
+            c.setAttribute('cx', pt.x.toFixed(1));
+            c.setAttribute('cy', pt.y.toFixed(1));
+            c.setAttribute('r', (5 + Math.random() * 4).toFixed(1));
+            box.appendChild(c);
+            c.animate([
+                { transform: 'scale(.4)', opacity: 0 },
+                { transform: 'scale(1.2)', opacity: .34, offset: .25 },
+                { transform: `scale(${(2.6 + Math.random()).toFixed(2)})`, opacity: 0 },
+            ], { duration: 900 + Math.random() * 400, delay: i * 55, easing: 'ease-out', fill: 'forwards' });
+        }
+    }
+
+    /**
+     * 대포를 쏜다. 착탄 순간에 resolve 되므로 호출부가 바로 지역을 켤 수 있다.
+     *
+     * 궤적은 진짜 포물선이다 — 수평 속도는 일정하고 높이만 2차로 변한다.
+     * 그래서 베지에 파라미터를 시간에 그대로(선형) 물린다. 여기에 ease 를 먹이면
+     * 포물선이 일그러져 '손으로 던진 것'처럼 보인다.
+     */
+    async function fireCannon(t) {
+        const layer = document.getElementById('map-shot');
+        const body = document.getElementById('shot-body');
+        const shadow = document.getElementById('shot-shadow');
+        const trail = document.getElementById('shot-trail');
+        if (!layer || !body || !shadow) return;
+
+        // 직전 발사의 페이드아웃이 fill:forwards 로 남아 있으면 새 포탄이 보이지 않는다
+        if (shotFade) {
+            shotFade.cancel();
+            shotFade = null;
+        }
+        layer.classList.add('is-active');
+        body.classList.add('is-flying');     // 팔다리 버둥거림 시작
+        if (svg) svg.classList.add('is-throwing');
+
+        // 포는 지도 오른쪽 아래 구석에 둔다(대개 바다라 지역을 가리지 않는다)
+        const L = { x: VIEW_W - 46, y: VIEW_H - 26 };
+        // 정점을 높일수록 곡사포, 낮추면 직사포가 된다
+        const ctrl = { x: (L.x + t.x) / 2, y: Math.min(L.y, t.y) - 300 };
+
+        const STEPS = 16;
+        const SPINS = 2.75;             // 사람이 정신없이 구르는 편이 재밌다
+        const pts = [];
+        for (let i = 0; i <= STEPS; i++) pts.push(bezier(L, ctrl, t, i / STEPS));
+
+        muzzleBlast(L, Math.atan2(ctrl.y - L.y, ctrl.x - L.x));
+        trailSmoke(pts);
+
+        if (trail) {
+            trail.setAttribute('d',
+                `M${L.x.toFixed(1)} ${L.y.toFixed(1)} Q${ctrl.x.toFixed(1)} ${ctrl.y.toFixed(1)} ${t.x.toFixed(1)} ${t.y.toFixed(1)}`);
+            const len = trail.getTotalLength();
+            trail.style.strokeDasharray = `${len * .22} ${len}`;
+            trail.animate([
+                { strokeDashoffset: len * .22, opacity: 0 },
+                { opacity: .9, offset: .2 },
+                { strokeDashoffset: -len, opacity: 0 },
+                // fill 을 남기면 다음 발사 때 dashoffset 이 그대로 걸려 꼬리가 안 보인다
+            ], { duration: SHOT_FLIGHT_MS + 140, easing: 'linear' });
+        }
+
+        const frames = [];
+        const shadowFrames = [];
+        for (let i = 0; i <= STEPS; i++) {
+            const p = i / STEPS;
+            const pt = pts[i];
+            // 그림자는 아치를 그리지 않고 지면을 직선으로 간다 — 이 차이가 '높이'를 만든다
+            const gx = L.x + (t.x - L.x) * p;
+            const gy = L.y + (t.y - L.y) * p;
+            const lift = Math.max(0, Math.min(1, (gy - pt.y) / 300));   // 0(지면) ~ 1(정점)
+            frames.push({
+                offset: p,
+                transform: `translate(${pt.x.toFixed(1)}px, ${pt.y.toFixed(1)}px) `
+                    + `scale(${(1 + 1.25 * lift).toFixed(2)}) rotate(${(-360 * SPINS * (1 - p)).toFixed(1)}deg)`,
+                opacity: 1,
+            });
+            shadowFrames.push({
+                offset: p,
+                transform: `translate(${gx.toFixed(1)}px, ${gy.toFixed(1)}px) scale(${(1 + 1.6 * lift).toFixed(2)})`,
+                opacity: (0.5 - 0.34 * lift).toFixed(2),   // 높이 뜰수록 옅고 크게
+            });
+        }
+
+        shadow.animate(shadowFrames, { duration: SHOT_FLIGHT_MS, easing: 'linear', fill: 'forwards' });
+        await body.animate(frames, { duration: SHOT_FLIGHT_MS, easing: 'linear', fill: 'forwards' }).finished;
+
+        shotImpact(t);
+        body.classList.remove('is-flying');   // 땅에 닿는 순간 팔다리가 멎는다
+        if (svg) {
+            svg.classList.remove('is-throwing');
+            retrigger(svg, 'is-struck');
+        }
+
+        // 착지 반동. 사람은 다트처럼 떨리지 않는다 — 납작하게 눌렸다가 한 번 튀고 선다.
+        // 가로세로를 반대로 늘리는 스쿼시가 무게를 만든다(가로만 늘리면 고무공이 된다).
+        const at = (sx, sy, dy, rot) =>
+            `translate(${t.x}px, ${(t.y + dy).toFixed(1)}px) scale(${sx}, ${sy}) rotate(${rot}deg)`;
+        body.animate([
+            { transform: at(1.5, .58, 6, 0), offset: 0 },      // 부딪히며 납작하게 뭉개지고
+            { transform: at(.82, 1.24, -14, -8), offset: .15 },// 크게 튀어오르고
+            { transform: at(1.18, .86, 2, 5), offset: .32 },   // 두 번째 착지
+            { transform: at(.92, 1.1, -6, 6), offset: .46 },   // 작게 한 번 더 튀고
+            { transform: at(1.08, .94, 1, -4), offset: .62 },
+            { transform: at(.98, 1.03, -1, 3), offset: .76 },  // 휘청
+            { transform: at(1.02, .99, 0, -1.5), offset: .89 },
+            { transform: at(1, 1, 0, 0), offset: 1 },
+        ], { duration: SHOT_SETTLE_MS, easing: 'ease-out', fill: 'forwards' });
+    }
+
+    /** 결과를 충분히 본 뒤 사람을 걷는다 (지역의 불은 그대로 남는다) */
+    function clearShot() {
+        const layer = document.getElementById('map-shot');
+        if (!layer) return;
+        shotFade = layer.animate([{ opacity: 1 }, { opacity: 0 }],
+            { duration: 380, easing: 'ease-out', fill: 'forwards' });
+        shotFade.finished.then(() => layer.classList.remove('is-active'))
+            .catch(() => { /* 다음 던지기가 끼어들면 무시 */ });
+    }
+
     async function pickRandom() {
-        if (spinning) return;
+        if (throwing) return;
         const paths = Array.from(svg.querySelectorAll('.sig-path'));
         if (!paths.length) return;
 
-        spinning = true;
+        throwing = true;
         const btn = document.getElementById('map-shuffle');
         if (btn) {
             btn.disabled = true;
-            btn.classList.add('is-spinning');
+            btn.classList.add('is-throwing');
         }
 
         // 목적지를 먼저 정해두고 연출을 돌린다(연출 중 네트워크 대기가 없도록)
@@ -510,29 +758,20 @@
         if (!reduceMotion) {
             closePanel();
             svg.querySelectorAll('.sig-path.selected').forEach((p) => p.classList.remove('selected'));
-
-            let prev = null;
-            for (let i = 0; i < SPIN_STEPS; i++) {
-                if (prev) prev.classList.remove('spinning');
-                // 직전과 같은 곳이 연달아 걸리면 멈춘 것처럼 보인다
-                let next = paths[Math.floor(Math.random() * paths.length)];
-                if (next === prev && paths.length > 1) {
-                    next = paths[(paths.indexOf(next) + 1) % paths.length];
-                }
-                next.classList.add('spinning');
-                prev = next;
-                await sleep(spinDelay(i));
-            }
-            if (prev) prev.classList.remove('spinning');
+            await fireCannon(shotPoint(finalSigCd));
         }
 
         await selectRegion(finalSigCd);
 
+        if (!reduceMotion) {
+            sleep(SHOT_HOLD_MS).then(clearShot);
+        }
+
         if (btn) {
             btn.disabled = false;
-            btn.classList.remove('is-spinning');
+            btn.classList.remove('is-throwing');
         }
-        spinning = false;
+        throwing = false;
     }
 
     /* ---------- 초기화 ---------- */
@@ -553,8 +792,12 @@
         const courseCloseBtn = document.getElementById('course-preview-close');
         if (courseCloseBtn) courseCloseBtn.addEventListener('click', closePanel);
 
-        const shuffle = document.getElementById('map-shuffle');
-        if (shuffle) shuffle.addEventListener('click', pickRandom);
+        if (window.TravelCannon) {
+            window.TravelCannon.mount({ map: svg, selectRegion, closePanel });
+        } else {
+            const shuffle = document.getElementById('map-shuffle');
+            if (shuffle) shuffle.addEventListener('click', pickRandom);
+        }
 
         // 지역 상세의 "지도에서 보기"로 들어오면 해당 지역 카드를 바로 펼친다.
         const initialSigCd = new URLSearchParams(window.location.search).get('sigCd');

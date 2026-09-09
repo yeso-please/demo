@@ -162,6 +162,11 @@
                 <span class="material-symbols-outlined">near_me</span>
                 근처
             </a>
+            <!-- 여러 날 계획은 비회원 초안도 있어서 로그인 여부와 무관하게 내보낸다 -->
+            <a th:href="@{/my/trips}" class="site-nav__link">
+                <span class="material-symbols-outlined">luggage</span>
+                내 여행
+            </a>
             <a th:if="${currentUser != null}" th:href="@{/my/courses}" class="site-nav__link">
                 <span class="material-symbols-outlined">bookmark</span>
                 내 코스
@@ -350,6 +355,71 @@
         }
     </style>
 </header>
+
+<!--
+    ===================== 여행 떠나기 =====================
+    발견한 지역을 여러 날 계획으로 넘기는 진입점 (PRD F-04 → F-06).
+    일수는 여기서 정하고 날짜는 선택 사항이다 — 날짜가 없어도 Day 번호로 계획할 수 있다.
+
+    사용: <div th:replace="~{fragments/layout :: tripStart(${sigCd}, 'default')}"></div>
+    variant 가 'panel' 이면 지도 패널용(폭이 좁아 세로로 쌓는다).
+-->
+<div th:fragment="tripStart(sigCd, variant)" class="trip-start" th:classappend="${variant == 'panel'} ? ' trip-start--panel' : ''">
+    <form th:action="@{/trip/new}" method="get" class="trip-start__form">
+        <input type="hidden" name="sigCd" th:value="${sigCd}" class="trip-start__sig"/>
+        <label class="trip-start__field">
+            <span>일수</span>
+            <select name="days" aria-label="여행 일수">
+                <option value="1">당일</option>
+                <option value="2" selected>1박 2일</option>
+                <option value="3">2박 3일</option>
+                <option value="4">3박 4일</option>
+                <option value="5">4박 5일</option>
+                <option value="6">5박 6일</option>
+                <option value="7">6박 7일</option>
+            </select>
+        </label>
+        <label class="trip-start__field">
+            <span>출발일 (선택)</span>
+            <input type="date" name="start" aria-label="출발일"/>
+        </label>
+        <button type="submit" class="btn-primary trip-start__go">
+            <span class="material-symbols-outlined text-[20px]">luggage</span>
+            이 지역으로 여행 떠나기
+        </button>
+    </form>
+
+    <style>
+        .trip-start__form {
+            display: flex;
+            align-items: flex-end;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+        .trip-start__field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: var(--fs-caption);
+            color: var(--text-muted);
+        }
+        .trip-start__field select,
+        .trip-start__field input {
+            height: 44px;
+            padding: 0 12px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-btn);
+            color: var(--text);
+        }
+        .trip-start__go { height: 52px; padding: 0 var(--space-3); font-size: var(--fs-card); }
+        .trip-start--panel .trip-start__form { flex-direction: column; align-items: stretch; }
+        .trip-start--panel .trip-start__field { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--space-1); }
+        .trip-start--panel .trip-start__field select,
+        .trip-start--panel .trip-start__field input { flex: 1; max-width: 60%; }
+        .trip-start--panel .trip-start__go { width: 100%; }
+    </style>
+</div>
 
 <!-- ===================== FOOTER ===================== -->
 <footer th:fragment="footer" class="site-footer">

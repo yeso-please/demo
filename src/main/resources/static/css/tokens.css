@@ -288,15 +288,6 @@ body {
 .sig-path.selected-ignite {
     animation: selection-ignite 1050ms cubic-bezier(.16,.84,.3,1) both;
 }
-/* 룰렛이 훑고 지나가는 순간 — 선택보다 옅어 최종 결과와 구분된다.
-   빠르게 바뀌므로 transition 을 끊어 잔상이 남지 않게 한다. */
-.sig-path.spinning {
-    fill: var(--accent-soft);
-    stroke: var(--accent);
-    stroke-width: 1.5px;
-    transition: none;
-}
-
 /* 온보딩에서 만든 '내 결과'와 가까운 지역 — 모두 같은 세기로 칠한다.
    1·2·3위를 색 농도로 나누는 순간 랭킹이 되므로, 강도 차이를 두지 않는다. */
 .sig-path.discovered {

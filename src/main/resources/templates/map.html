@@ -42,6 +42,50 @@
                     <g id="map-glow" filter="url(#discovery-glow)" aria-hidden="true"></g>
                     <g id="map-selected-glow" filter="url(#discovery-glow)" aria-hidden="true"></g>
                     <g id="map-sparks" aria-hidden="true"></g>
+
+                    <!--
+                        무작위 발견 연출 — 던진 다트가 꽂힌 곳이 결과다.
+                        좌표는 viewBox(800x1000) 기준이며 map.js 가 전부 계산해 넣는다.
+                        그리는 순서 = 겹치는 순서: 그림자 → 충격파 → 날개 → 배럴 → 침.
+                    -->
+                    <g id="map-shot" aria-hidden="true">
+                        <!-- 날아간 자리에 남는 꼬리. d 는 다트가 실제로 지나는 곡선과 같은 식으로 만든다. -->
+                        <path id="shot-trail" class="shot-trail"/>
+                        <ellipse id="shot-shadow" class="shot-shadow" rx="15" ry="5.5"/>
+                        <g id="shot-impact">
+                            <circle class="shot-impact__ring" r="1" vector-effect="non-scaling-stroke"/>
+                            <circle class="shot-impact__ring shot-impact__ring--wide" r="1" vector-effect="non-scaling-stroke"/>
+                            <circle class="shot-impact__ring shot-impact__ring--wide" r="1" vector-effect="non-scaling-stroke"/>
+                            <circle id="shot-flash" class="shot-flash" r="7"/>
+                        </g>
+                        <!-- 착탄 파편·발사 화염·포연. map.js 가 좌표를 계산해 채운다. -->
+                        <g id="shot-sparks"></g>
+                        <g id="shot-smoke"></g>
+                        <g id="shot-muzzle">
+                            <circle id="muzzle-flash" class="muzzle-flash" r="10"/>
+                        </g>
+                        <ellipse id="shot-dust" class="shot-dust" rx="1" ry="1"/>
+                        <!--
+                            포탄 = 사람. 원점(0,0)이 몸 중심이라 rotate 가 곧 공중제비가 된다.
+                            팔다리는 stroke, 머리와 몸통은 fill — 작게 줄여도 실루엣이 안 뭉갠다.
+                        -->
+                        <g id="shot-body" class="flier">
+                            <g class="flier__scarf-g">
+                                <path class="flier__scarf" d="M-3 -7 C-11 -5 -17 -11 -25 -8 C-18 -2 -9 -1 -2 -4 Z"/>
+                            </g>
+                            <!--
+                                팔다리는 각자 그룹이다. SVG 자식의 transform-origin 기본값이
+                                (0,0) = 몸 중심이라, 그룹을 회전시키면 팔다리가 몸통을 축으로
+                                휘둘린다. 넷의 위상을 어긋나게 줘야 버둥거리는 것으로 보인다.
+                            -->
+                            <g class="flier__limb-g flier__limb-g--a"><path class="flier__limb" d="M2 -4 L13 -11"/></g>
+                            <g class="flier__limb-g flier__limb-g--b"><path class="flier__limb" d="M2 -2 L12 -2"/></g>
+                            <g class="flier__limb-g flier__limb-g--c"><path class="flier__limb" d="M-1 5 L-10 8"/></g>
+                            <g class="flier__limb-g flier__limb-g--d"><path class="flier__limb" d="M-2 4 L-8 14"/></g>
+                            <path class="flier__body" d="M2 -5 C6 -2 5 3 1 6 L-4 4 C0 1 -1 -3 -3 -5 Z"/>
+                            <circle class="flier__head" cx="3.5" cy="-9.5" r="4.6"/>
+                        </g>
+                    </g>
                 </svg>
                 <div id="map-reveal-flash" aria-hidden="true"></div>
 
@@ -143,21 +187,8 @@
                     </span>
                 </a>
 
-                <!-- 우하단 액션: 지도 발견(주요) + 조건 좁히기(보조) -->
-                <div class="absolute bottom-card-padding right-card-padding flex items-center gap-2">
-                    <button type="button" id="map-shuffle"
-                            class="bg-surface border border-border rounded-lg px-4 h-[44px] flex items-center gap-2 hover:bg-surface-alt transition-colors font-body-main text-body-main text-text-primary shadow-sm">
-                        <span class="material-symbols-outlined text-primary text-[20px]">shuffle</span>
-                        무작위로 발견
-                    </button>
-                    <!-- 지도는 '언젠가 갈 곳', 근처는 '지금 나갈까' — 두 번째 축이 여기서 갈린다.
-                         (전에 있던 '맞춤 여행안 만들기'는 조건 폼 기획의 잔재라 걷어냈다) -->
-                    <a th:href="@{/nearby}"
-                       class="bg-primary-container hover:bg-accent-hover text-on-primary rounded-lg px-5 h-[44px] flex items-center gap-2 transition-all duration-300 hover:-translate-y-[2px] font-semibold shadow-sm">
-                        <span class="material-symbols-outlined text-[20px]">near_me</span>
-                        지금 나갈 만한 곳
-                    </a>
-                </div>
+                <section id="travel-cannon" class="travel-cannon" aria-label="동행 아바타와 랜덤 여행 발사"></section>
+                <a th:href="@{/nearby}" class="cannon-nearby">지금 나갈 만한 곳</a>
             </div>
         </section>
 
@@ -251,6 +282,8 @@
                  발견에서 끝나지 않게 '하루 보내기'를 주 행동으로 둔다.
                  지역을 더 훑어보고 싶은 사람을 위해 상세 진입은 보조로 남긴다. -->
             <div class="p-4 bg-surface border-t border-border shrink-0 flex flex-col gap-2">
+                <!-- 발견 → 여러 날 계획으로 넘기는 주 행동. sigCd 는 map.js 가 채운다 -->
+                <div id="panel-trip" th:replace="~{fragments/layout :: tripStart('', 'panel')}"></div>
                 <a id="panel-day" href="#"
                    class="w-full h-[52px] bg-primary-container hover:bg-accent-hover text-on-primary font-section-title text-card-title rounded flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5">
                     <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 200;">wb_twilight</span>
@@ -334,10 +367,13 @@
      탐색 화면은 원래 전면(full-bleed)이 맞기도 하다. -->
 
 <!-- 지도 라이브러리(필요 모듈만 자체 호스팅) + 초기화 -->
+<link rel="stylesheet" th:href="@{/css/cannon-launcher.css}">
 <script th:src="@{/js/geo.js}"></script>
 <script th:src="@{/js/d3-array.min.js}"></script>
 <script th:src="@{/js/d3-geo.min.js}"></script>
 <script th:src="@{/js/topojson-client.min.js}"></script>
+<script th:src="@{/js/cannon-game-fx.js}"></script>
+<script th:src="@{/js/cannon-launcher.js}"></script>
 <script th:src="@{/js/map.js}"></script>
 <script th:src="@{/js/recommend.js}"></script>
 </body>

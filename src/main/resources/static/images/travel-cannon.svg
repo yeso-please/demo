@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+  <title>숨은여행의 황금빛 여행 대포</title>
+  <defs>
+    <linearGradient id="brass" x1="94" y1="53" x2="116" y2="123" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF1C7"/><stop offset=".35" stop-color="#EBC477"/><stop offset=".72" stop-color="#BD823C"/><stop offset="1" stop-color="#775132"/></linearGradient>
+    <linearGradient id="rim" x1="43" y1="38" x2="79" y2="87" gradientUnits="userSpaceOnUse"><stop stop-color="#FFEABD"/><stop offset="1" stop-color="#B87C3D"/></linearGradient>
+    <linearGradient id="wood" x1="123" y1="111" x2="134" y2="159" gradientUnits="userSpaceOnUse"><stop stop-color="#88614A"/><stop offset="1" stop-color="#352E31"/></linearGradient>
+    <radialGradient id="wheel"><stop stop-color="#5F5360"/><stop offset=".8" stop-color="#292B39"/><stop offset="1" stop-color="#171F2E"/></radialGradient>
+  </defs>
+  <ellipse cx="140" cy="166" rx="84" ry="10" fill="#050C18" opacity=".42"/>
+  <circle cx="180" cy="138" r="23" fill="#232735" stroke="#846449" stroke-width="6"/>
+  <path d="M101 111 184 117 209 151 92 151Z" fill="url(#wood)" stroke="#BC9362" stroke-width="2"/>
+  <path d="M111 126 181 133M129 139 195 145" stroke="#D0A579" stroke-opacity=".25" stroke-width="2"/>
+  <path d="M71 39 175 94Q195 107 181 128Q172 141 153 131L49 75Z" fill="url(#brass)" stroke="#E5B975" stroke-width="2"/>
+  <path d="M82 48 169 95" stroke="#FFF2CD" stroke-width="5" stroke-linecap="round" opacity=".6"/>
+  <path d="M123 69 108 106M149 83 134 120" stroke="#9F6D38" stroke-width="8"/>
+  <path d="M125 69 110 106M151 83 136 120" stroke="#F4D99F" stroke-width="3"/>
+  <ellipse cx="59" cy="57" rx="20" ry="29" transform="rotate(30 59 57)" fill="url(#rim)" stroke="#F4D99F" stroke-width="2"/>
+  <ellipse cx="57" cy="57" rx="12" ry="21" transform="rotate(30 57 57)" fill="#152135" stroke="#976A40" stroke-width="3"/>
+  <path d="M50 42Q44 51 45 62" stroke="#050D1B" stroke-width="4" stroke-linecap="round"/>
+  <path d="m162 101 3 8 8 1-6 6 1 8-7-4-7 4 1-8-6-6 8-1Z" fill="#FFE7A9"/>
+  <circle cx="124" cy="139" r="29" fill="url(#wheel)" stroke="#E4BD7E" stroke-width="7"/>
+  <circle cx="124" cy="139" r="22" stroke="#927047" stroke-width="2"/>
+  <path d="M124 117V161M102 139H146M108 123 140 155M108 155 140 123" stroke="#AE8759" stroke-width="4"/>
+  <circle cx="124" cy="139" r="9" fill="#E5BE7E" stroke="#5D463C" stroke-width="3"/>
+  <circle cx="124" cy="139" r="3" fill="#FFF0C7"/>
+  <path d="M187 103q14-14 18-1" stroke="#D1BA91" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="light" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('여행페이지 · 내 여행')}"></head>
+<body class="bg-background text-text-primary font-body-main antialiased min-h-screen flex flex-col">
+
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main class="max-w-[900px] mx-auto px-6 py-section-gap w-full flex-1 flex flex-col gap-5">
+
+    <div class="flex items-end justify-between gap-4 flex-wrap">
+        <div class="flex flex-col gap-1">
+            <h1 class="font-display-title text-display-title text-text-primary">내 여행</h1>
+            <p class="font-body-main text-caption text-text-muted">여행 당일에 다시 열어보는 자리예요.</p>
+        </div>
+        <a th:href="@{/map}" class="btn-secondary">
+            <span class="material-symbols-outlined text-[18px]">explore</span> 지도에서 새로 뽑기
+        </a>
+    </div>
+
+    <div th:if="${!loggedIn and !trips.isEmpty()}"
+         class="bg-accent-soft border border-border rounded-card p-4 flex items-center gap-2 font-caption text-caption">
+        <span class="material-symbols-outlined text-primary text-[18px]">info</span>
+        아래 초안은 이 브라우저에서만 열려요.
+        <a th:href="@{/login}" class="text-primary underline">로그인</a>하면 계정으로 옮겨집니다.
+    </div>
+
+    <p th:if="${trips.isEmpty()}"
+       class="border border-dashed border-border rounded-card py-14 text-center font-caption text-caption text-text-muted leading-relaxed">
+        아직 만든 여행이 없어요.<br/>지도에서 지역을 뽑고 <b class="text-text-primary">이 지역으로 여행 떠나기</b>를 눌러보세요.
+    </p>
+
+    <ul class="flex flex-col gap-3">
+        <li th:each="t : ${trips}">
+            <a th:href="@{/trip/{id}(id=${t.id})}"
+               class="card bg-surface border border-border rounded-card p-5 flex items-center gap-4 hover:border-primary transition-colors">
+                <span class="w-11 h-11 rounded-full bg-accent-soft text-primary inline-flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined">map</span>
+                </span>
+                <span class="flex-1 min-w-0 flex flex-col gap-1">
+                    <span class="flex items-center gap-2 flex-wrap">
+                        <span class="font-card-title text-card-title text-text-primary truncate" th:text="${t.title}">여행 이름</span>
+                        <span class="font-caption px-2 py-0.5 rounded text-[11px]"
+                              th:classappend="${t.confirmed} ? ' bg-sage-bg text-sage border border-sage-border' : ' bg-surface-alt text-text-muted'"
+                              th:text="${t.confirmed} ? '계획 확정' : '초안'">초안</span>
+                        <span th:if="${t.entry.name() == 'RANDOM'}"
+                              class="font-caption px-2 py-0.5 rounded text-[11px] bg-accent-soft text-primary">랜덤 도착</span>
+                    </span>
+                    <span class="font-caption text-caption text-text-muted">
+                        <span th:text="${regionLabels.get(t.id)}">경상북도 영양군</span> ·
+                        <span th:text="${t.dayCount} + '일'">3일</span>
+                        <span th:if="${t.startDate != null}" th:text="' · ' + ${#temporals.format(t.startDate, 'yyyy.M.d')} + ' 출발'"> · 2026.10.17 출발</span>
+                    </span>
+                </span>
+                <span class="material-symbols-outlined text-text-muted shrink-0">chevron_right</span>
+            </a>
+        </li>
+    </ul>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

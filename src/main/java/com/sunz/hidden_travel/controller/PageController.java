@@ -29,16 +29,22 @@ public class PageController {
     private final DummyRegionData regionData;
     private final RegionQueryService regionQueryService;
     private final com.sunz.hidden_travel.service.RegionIntroService regionIntroService;
+    private final com.sunz.hidden_travel.service.TravelPreferenceService preferenceService;
+    private final com.sunz.hidden_travel.user.CurrentUserService currentUserService;
 
     /** 카카오맵 JavaScript 키 (출발지 역지오코딩용, 없으면 목적지만 길찾기) */
     @Value("${kakao.js.key:}")
     private String kakaoJsKey;
 
     public PageController(DummyRegionData regionData, RegionQueryService regionQueryService,
-                          com.sunz.hidden_travel.service.RegionIntroService regionIntroService) {
+                          com.sunz.hidden_travel.service.RegionIntroService regionIntroService,
+                          com.sunz.hidden_travel.service.TravelPreferenceService preferenceService,
+                          com.sunz.hidden_travel.user.CurrentUserService currentUserService) {
         this.regionData = regionData;
         this.regionQueryService = regionQueryService;
         this.regionIntroService = regionIntroService;
+        this.preferenceService = preferenceService;
+        this.currentUserService = currentUserService;
     }
 
     private RegionSummary toSummary(RegionBundle b) {
@@ -50,10 +56,20 @@ public class PageController {
        라우팅
        ========================================================= */
 
-    /** 첫 진입 화면 — 여행 초대 편지. */
+    /**
+     * 첫 진입 화면 — 여행 초대 편지.
+     *
+     * <p>온보딩 화면은 12문항·태그 데이터를 모델에서 받는다. 여기서 템플릿을 직접 렌더하면
+     * 그 데이터가 없어 페이지가 중간에서 끊긴다 — 진입점을 {@link OnboardingController} 하나로 모은다.
+     *
+     * <p>이미 성향을 입력한 재방문자는 검사를 다시 시키지 않고 지도로 보낸다(PRD 4.1).
+     * 프로필의 '다시 검사'는 {@code /onboarding} 으로 직접 가므로 여기 영향을 받지 않는다.
+     */
     @GetMapping("/")
-    public String invitation() {
-        return "onboarding";
+    public String invitation(jakarta.servlet.http.HttpServletRequest request) {
+        var session = request.getSession(false);
+        var pref = preferenceService.snapshot(currentUserService.current(), session);
+        return pref.answered() ? "redirect:/map" : "redirect:/onboarding";
     }
 
     /** 로그인 화면 (헤더/푸터 숨김). 로그인 처리는 /login(POST) 필터가 담당한다. */
